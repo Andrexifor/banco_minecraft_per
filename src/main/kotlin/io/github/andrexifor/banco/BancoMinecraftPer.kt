@@ -1,0 +1,70 @@
+package io.github.andrexifor.banco
+
+import io.github.andrexifor.banco.juego.Almacen
+import io.github.andrexifor.banco.juego.Comandos
+import io.github.andrexifor.banco.nucleo.Banco
+import io.github.andrexifor.banco.nucleo.Configuracion
+import io.github.andrexifor.banco.nucleo.Formato
+import net.fabricmc.api.DedicatedServerModInitializer
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents
+import net.fabricmc.loader.api.FabricLoader
+import net.minecraft.ChatFormatting
+import net.minecraft.network.chat.Component
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+
+object BancoMinecraftPer : DedicatedServerModInitializer {
+    const val MOD_ID = "banco_minecraft_per"
+    val LOGGER: Logger = LoggerFactory.getLogger(MOD_ID)
+
+    lateinit var almacen: Almacen
+        private set
+    lateinit var config: Configuracion
+        private set
+    lateinit var banco: Banco
+        private set
+
+    override fun onInitializeServer() {
+        val loader = FabricLoader.getInstance()
+        almacen = Almacen(
+            dirConfig = loader.configDir.resolve(MOD_ID),
+            dirDatos = loader.gameDir.resolve(MOD_ID),
+        )
+        config = almacen.cargarConfiguracion()
+        banco = almacen.cargarBanco()
+        LOGGER.info("Banco Minecraft PER listo: {} cuentas cargadas", banco.todas().size)
+
+        CommandRegistrationCallback.EVENT.register { dispatcher, _, _ -> Comandos.registrar(dispatcher) }
+
+        ServerPlayConnectionEvents.JOIN.register { handler, _, _ ->
+            val jugador = handler.player
+            val nueva = banco.abrirCuenta(jugador.uuid, jugador.name.string, config.saldoInicial)
+            guardar()
+            if (nueva) {
+                almacen.registrar("APERTURA", "-", jugador.name.string, config.saldoInicial)
+                jugador.sendSystemMessage(
+                    Component.literal(
+                        "¡Bienvenido al Banco Minecraft PER! Tu cuenta empieza con " +
+                            "${Formato.soles(config.saldoInicial)}. Escribe /banco para ver los comandos.",
+                    ).withStyle(ChatFormatting.GOLD),
+                )
+            }
+        }
+
+        ServerLifecycleEvents.SERVER_STOPPING.register { _ -> guardar() }
+    }
+
+    fun guardar() {
+        try {
+            almacen.guardarBanco(banco)
+        } catch (e: Exception) {
+            LOGGER.error("No se pudo guardar cuentas.json", e)
+        }
+    }
+
+    fun recargarConfiguracion() {
+        config = almacen.cargarConfiguracion()
+    }
+}
