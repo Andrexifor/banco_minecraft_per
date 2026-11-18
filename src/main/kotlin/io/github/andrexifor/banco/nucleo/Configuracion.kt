@@ -13,10 +13,16 @@ data class Configuracion(
     var retiroMaximo: Long = 1_000_000,
     /** Cuántos jugadores muestra /banco top. */
     var rankingLimite: Int = 10,
+    /** % extra sobre cada compra en la tienda del servidor (sumidero de dinero). */
+    var impuestoComprasPorcentaje: Double = 5.0,
+    /** % que se descuenta de cada venta a la tienda del servidor. */
+    var impuestoVentasPorcentaje: Double = 0.0,
 ) {
     fun normalizada(): Configuracion = copy(
         saldoInicial = saldoInicial.coerceIn(0, Banco.SALDO_MAXIMO),
         impuestoPagosPorcentaje = impuestoPagosPorcentaje.coerceIn(0.0, 100.0),
+        impuestoComprasPorcentaje = impuestoComprasPorcentaje.coerceIn(0.0, 100.0),
+        impuestoVentasPorcentaje = impuestoVentasPorcentaje.coerceIn(0.0, 100.0),
         retiroMaximo = retiroMaximo.coerceAtLeast(1),
         rankingLimite = rankingLimite.coerceIn(1, 50),
     )

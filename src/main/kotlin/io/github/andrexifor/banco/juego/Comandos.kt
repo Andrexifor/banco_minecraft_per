@@ -8,7 +8,6 @@ import com.mojang.brigadier.context.CommandContext
 import io.github.andrexifor.banco.BancoMinecraftPer
 import io.github.andrexifor.banco.nucleo.Banco
 import io.github.andrexifor.banco.nucleo.Denominacion
-import io.github.andrexifor.banco.nucleo.Desglose
 import io.github.andrexifor.banco.nucleo.Formato
 import io.github.andrexifor.banco.nucleo.Resultado
 import me.lucko.fabric.api.permissions.v0.Permissions
@@ -21,12 +20,11 @@ import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerPlayer
 
 /**
- * Comandos en español. No chocan con Viper (/bal, /pay, /withdraw…), que sigue
- * activo hasta la fase 3.
+ * Comandos en español.
  *
  * Permisos (LuckPerms):
- *   banco_minecraft_per.saldo.otros  -> /saldo <jugador>            (por defecto: nivel op 2)
- *   banco_minecraft_per.admin        -> /banco dar|quitar|fijar|crear|recargar (por defecto: nivel op 3)
+ *   banco_minecraft_per.saldo.otros  -> /saldo <jugador>                         (por defecto: op 2)
+ *   banco_minecraft_per.admin        -> /banco dar|quitar|fijar|crear|recargar|npc (por defecto: op 3)
  */
 object Comandos {
     private const val PERM = BancoMinecraftPer.MOD_ID
@@ -45,27 +43,33 @@ object Comandos {
 
         d.register(
             literal("retirar").then(
-                argument("monto", LongArgumentType.longArg(1))
-                    .executes { retirar(it, LongArgumentType.getLong(it, "monto")) },
+                argument("monto", LongArgumentType.longArg(1)).executes {
+                    responder(it, Operaciones.retirar(it.source.playerOrException, LongArgumentType.getLong(it, "monto")))
+                },
             ),
         )
 
         d.register(
             literal("depositar")
-                .executes { depositar(it, soloMano = false) }
-                .then(literal("todo").executes { depositar(it, soloMano = false) })
-                .then(literal("mano").executes { depositar(it, soloMano = true) }),
+                .executes { responder(it, Operaciones.depositar(it.source.playerOrException, soloMano = false)) }
+                .then(literal("todo").executes { responder(it, Operaciones.depositar(it.source.playerOrException, soloMano = false)) })
+                .then(literal("mano").executes { responder(it, Operaciones.depositar(it.source.playerOrException, soloMano = true)) }),
         )
 
         d.register(
             literal("pagar").then(
                 argument("jugador", EntityArgument.player()).then(
-                    argument("monto", LongArgumentType.longArg(1))
-                        .executes {
-                            pagar(it, EntityArgument.getPlayer(it, "jugador"), LongArgumentType.getLong(it, "monto"))
-                        },
+                    argument("monto", LongArgumentType.longArg(1)).executes { pagar(it) },
                 ),
             ),
+        )
+
+        d.register(literal("tienda").executes { GuiTienda.abrir(it.source.playerOrException); 1 })
+
+        d.register(
+            literal("vender")
+                .then(literal("mano").executes { responder(it, GuiTienda.venderMano(it.source.playerOrException)) })
+                .then(literal("todo").executes { responder(it, GuiTienda.venderTodo(it.source.playerOrException)) }),
         )
 
         val admin = Permissions.require("$PERM.admin", 3)
@@ -73,33 +77,9 @@ object Comandos {
             literal("banco")
                 .executes { ayuda(it) }
                 .then(literal("top").executes { top(it) })
-                .then(
-                    literal("dar").requires(admin).then(
-                        argument("jugador", EntityArgument.player()).then(
-                            argument("monto", LongArgumentType.longArg(1)).executes {
-                                adminOperacion(it, "dar")
-                            },
-                        ),
-                    ),
-                )
-                .then(
-                    literal("quitar").requires(admin).then(
-                        argument("jugador", EntityArgument.player()).then(
-                            argument("monto", LongArgumentType.longArg(1)).executes {
-                                adminOperacion(it, "quitar")
-                            },
-                        ),
-                    ),
-                )
-                .then(
-                    literal("fijar").requires(admin).then(
-                        argument("jugador", EntityArgument.player()).then(
-                            argument("monto", LongArgumentType.longArg(0)).executes {
-                                adminOperacion(it, "fijar")
-                            },
-                        ),
-                    ),
-                )
+                .then(literal("dar").requires(admin).then(jugadorYMonto("dar", 1)))
+                .then(literal("quitar").requires(admin).then(jugadorYMonto("quitar", 1)))
+                .then(literal("fijar").requires(admin).then(jugadorYMonto("fijar", 0)))
                 .then(
                     literal("crear").requires(admin).then(
                         argument("denominacion", StringArgumentType.word())
@@ -108,15 +88,32 @@ object Comandos {
                                 b.buildFuture()
                             }
                             .then(
-                                argument("cantidad", IntegerArgumentType.integer(1, 64)).executes {
-                                    crearEfectivo(it)
-                                },
+                                argument("cantidad", IntegerArgumentType.integer(1, 64)).executes { crearEfectivo(it) },
                             ),
                     ),
+                )
+                .then(
+                    literal("npc").requires(admin)
+                        .then(
+                            literal("crear").then(
+                                argument("tipo", StringArgumentType.word())
+                                    .suggests { _, b ->
+                                        TipoNpc.entries.forEach { t -> b.suggest(t.id) }
+                                        b.buildFuture()
+                                    }
+                                    .executes { crearNpc(it) },
+                            ),
+                        )
+                        .then(literal("quitar").executes { quitarNpc(it) }),
                 )
                 .then(literal("recargar").requires(admin).executes { recargar(it) }),
         )
     }
+
+    private fun jugadorYMonto(op: String, minimo: Long) =
+        argument("jugador", EntityArgument.player()).then(
+            argument("monto", LongArgumentType.longArg(minimo)).executes { adminOperacion(it, op) },
+        )
 
     // ---------- jugadores ----------
 
@@ -131,73 +128,17 @@ object Comandos {
         return 1
     }
 
-    private fun retirar(ctx: CommandContext<CommandSourceStack>, monto: Long): Int {
-        val jugador = ctx.source.playerOrException
-        val cfg = BancoMinecraftPer.config
-        if (monto > cfg.retiroMaximo) {
-            return error(ctx, "El máximo por retiro es ${Formato.soles(cfg.retiroMaximo)}")
-        }
-        val saldo = banco.saldo(jugador.uuid)
-        if (saldo < monto) {
-            return error(ctx, "Saldo insuficiente. Tienes ${Formato.soles(saldo)}")
-        }
-        val desglose = Desglose.desglosar(monto)
-        val necesarias = Desglose.casillasNecesarias(desglose)
-        val libres = Efectivo.casillasLibres(jugador)
-        if (necesarias > libres) {
-            return error(ctx, "Necesitas $necesarias casillas libres en el inventario (tienes $libres)")
-        }
-        return when (val r = banco.retirar(jugador.uuid, monto)) {
-            is Resultado.Ok -> {
-                Efectivo.entregar(jugador, desglose)
-                BancoMinecraftPer.guardar()
-                BancoMinecraftPer.almacen.registrar("RETIRO", jugador.name.string, "-", monto)
-                val detalle = desglose.entries.joinToString(", ") { (den, c) -> "${c}×${den.nombreCorto}" }
-                ok(ctx, "Retiraste ${Formato.soles(monto)} ($detalle). Saldo: ${Formato.soles(r.saldoFinal)}")
-                1
-            }
-            else -> error(ctx, mensaje(r))
-        }
-    }
-
-    private fun depositar(ctx: CommandContext<CommandSourceStack>, soloMano: Boolean): Int {
-        val jugador = ctx.source.playerOrException
-        val monto = if (soloMano) Efectivo.recogerMano(jugador) else Efectivo.recogerTodo(jugador)
-        if (monto <= 0) {
-            return error(ctx, if (soloMano) "No tienes efectivo en la mano" else "No tienes efectivo en el inventario")
-        }
-        return when (val r = banco.depositar(jugador.uuid, monto)) {
-            is Resultado.Ok -> {
-                BancoMinecraftPer.guardar()
-                BancoMinecraftPer.almacen.registrar("DEPOSITO", jugador.name.string, "-", monto)
-                ok(ctx, "Depositaste ${Formato.soles(monto)}. Saldo: ${Formato.soles(r.saldoFinal)}")
-                1
-            }
-            else -> {
-                // No debería pasar (p. ej. saldo máximo): devolver el efectivo
-                Efectivo.entregar(jugador, Desglose.desglosar(monto))
-                error(ctx, mensaje(r))
-            }
-        }
-    }
-
-    private fun pagar(ctx: CommandContext<CommandSourceStack>, destino: ServerPlayer, monto: Long): Int {
+    private fun pagar(ctx: CommandContext<CommandSourceStack>): Int {
         val origen = ctx.source.playerOrException
-        val pct = BancoMinecraftPer.config.impuestoPagosPorcentaje
-        return when (val r = banco.transferir(origen.uuid, destino.uuid, monto, pct)) {
-            is Resultado.Ok -> {
-                BancoMinecraftPer.guardar()
-                BancoMinecraftPer.almacen.registrar("PAGO", origen.name.string, destino.name.string, monto, r.impuesto)
-                val extra = if (r.impuesto > 0) " (+${Formato.soles(r.impuesto)} de impuesto)" else ""
-                ok(ctx, "Pagaste ${Formato.soles(monto)} a ${destino.name.string}$extra. Saldo: ${Formato.soles(r.saldoFinal)}")
-                destino.sendSystemMessage(
-                    Component.literal("${origen.name.string} te pagó ${Formato.soles(monto)}")
-                        .withStyle(ChatFormatting.GREEN),
-                )
-                1
-            }
-            else -> error(ctx, mensaje(r))
+        val destino = EntityArgument.getPlayer(ctx, "jugador")
+        val monto = LongArgumentType.getLong(ctx, "monto")
+        val r = Operaciones.pagar(origen, destino, monto)
+        if (r.ok) {
+            destino.sendSystemMessage(
+                Component.literal("${origen.name.string} te pagó ${Formato.soles(monto)}").withStyle(ChatFormatting.GREEN),
+            )
         }
+        return responder(ctx, r)
     }
 
     private fun top(ctx: CommandContext<CommandSourceStack>): Int {
@@ -218,7 +159,10 @@ object Comandos {
             "/retirar <monto> — sacar billetes y monedas",
             "/depositar [todo|mano] — guardar tu efectivo",
             "/pagar <jugador> <monto> — transferir",
+            "/tienda — comprar y vender",
+            "/vender mano | todo — vender rápido a la tienda",
             "/banco top — ranking",
+            "También puedes hablar con el Banquero y el Tendero",
         )
         lineas.forEach { ctx.source.sendSystemMessage(Component.literal(it).withStyle(ChatFormatting.AQUA)) }
         return 1
@@ -234,7 +178,7 @@ object Comandos {
             "quitar" -> banco.quitar(jugador.uuid, monto)
             else -> banco.fijar(jugador.uuid, monto)
         }
-        if (r !is Resultado.Ok) return error(ctx, mensaje(r))
+        if (r !is Resultado.Ok) return error(ctx, Operaciones.mensaje(r))
         BancoMinecraftPer.guardar()
         BancoMinecraftPer.almacen.registrar("ADMIN_" + op.uppercase(), ctx.source.textName, jugador.name.string, monto)
         ok(ctx, "Saldo de ${jugador.name.string}: ${Formato.soles(r.saldoFinal)}", avisarAdmins = true)
@@ -253,13 +197,44 @@ object Comandos {
         return 1
     }
 
+    private fun crearNpc(ctx: CommandContext<CommandSourceStack>): Int {
+        val jugador = ctx.source.playerOrException
+        val id = StringArgumentType.getString(ctx, "tipo")
+        val tipo = TipoNpc.porId(id) ?: return error(ctx, "Tipo de NPC desconocido: $id (usa: ${TipoNpc.entries.joinToString { it.id }})")
+        return if (Npcs.crear(jugador, tipo)) {
+            ok(ctx, "${tipo.nombre} creado aquí", avisarAdmins = true)
+            1
+        } else {
+            error(ctx, "No se pudo crear el NPC (revisa el log del servidor)")
+        }
+    }
+
+    private fun quitarNpc(ctx: CommandContext<CommandSourceStack>): Int {
+        val jugador = ctx.source.playerOrException
+        return if (Npcs.quitarCercano(jugador)) {
+            ok(ctx, "NPC eliminado", avisarAdmins = true)
+            1
+        } else {
+            error(ctx, "No hay ningún NPC del banco a menos de 6 bloques")
+        }
+    }
+
     private fun recargar(ctx: CommandContext<CommandSourceStack>): Int {
         BancoMinecraftPer.recargarConfiguracion()
-        ok(ctx, "Configuración recargada", avisarAdmins = true)
+        ok(ctx, "Configuración y tienda recargadas (${BancoMinecraftPer.catalogo.productos.size} productos)", avisarAdmins = true)
         return 1
     }
 
     // ---------- utilidades ----------
+
+    private fun responder(ctx: CommandContext<CommandSourceStack>, r: Respuesta): Int {
+        return if (r.ok) {
+            ok(ctx, r.mensaje)
+            1
+        } else {
+            error(ctx, r.mensaje)
+        }
+    }
 
     private fun ok(ctx: CommandContext<CommandSourceStack>, texto: String, avisarAdmins: Boolean = false) {
         ctx.source.sendSuccess({ Component.literal(texto).withStyle(ChatFormatting.GREEN) }, avisarAdmins)
@@ -268,13 +243,5 @@ object Comandos {
     private fun error(ctx: CommandContext<CommandSourceStack>, texto: String): Int {
         ctx.source.sendFailure(Component.literal(texto))
         return 0
-    }
-
-    private fun mensaje(r: Resultado): String = when (r) {
-        is Resultado.SaldoInsuficiente ->
-            "Saldo insuficiente: tienes ${Formato.soles(r.saldo)} y necesitas ${Formato.soles(r.requerido)}"
-        is Resultado.MontoInvalido -> r.motivo
-        Resultado.CuentaInexistente -> "Esa cuenta no existe (el jugador debe entrar al servidor al menos una vez)"
-        is Resultado.Ok -> "OK"
     }
 }

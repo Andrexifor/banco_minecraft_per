@@ -4,8 +4,9 @@ Mod de economía en **soles** para servidores Fabric (Minecraft 26.2). Funciona
 **solo en el servidor**: los jugadores entran con Minecraft vanilla y solo aceptan
 el resource pack que el servidor les ofrece al conectarse.
 
-> Fase 1 de 6 (ver `diseno-banco_minecraft_per.md` en el proyecto): banco + efectivo.
-> Convive con Viper Economy hasta la fase 3; los comandos no chocan.
+> Fases 1-3 de 6 (ver `diseno-banco_minecraft_per.md` en el proyecto): banco + efectivo,
+> menús con NPC (Banquero, Tendero) y tienda del servidor con impuesto.
+> Desde la v0.3.0 reemplaza a Viper Economy.
 
 ## Qué hace
 
@@ -30,10 +31,44 @@ el resource pack que el servidor les ofrece al conectarse.
 | `/retirar <monto>` | todos | Saca efectivo con desglose automático (87 → 50+20+10+5+2) |
 | `/depositar` · `/depositar mano` | todos | Deposita todo el efectivo del inventario, o solo el de la mano |
 | `/pagar <jugador> <monto>` | todos | Transferencia (con impuesto opcional) |
+| `/tienda` | todos | Abre la tienda del servidor |
+| `/vender mano` · `/vender todo` | todos | Vende a la tienda lo de la mano, o todo lo vendible del inventario |
 | `/banco top` | todos | Ranking de saldos |
 | `/banco dar\|quitar\|fijar <jugador> <monto>` | `banco_minecraft_per.admin` | Administración |
 | `/banco crear <denominacion> <cantidad>` | `banco_minecraft_per.admin` | Crear efectivo (pruebas) |
-| `/banco recargar` | `banco_minecraft_per.admin` | Recargar la configuración |
+| `/banco npc crear banquero\|tendero` | `banco_minecraft_per.admin` | Crea el NPC donde estás parado |
+| `/banco npc quitar` | `banco_minecraft_per.admin` | Elimina el NPC del banco más cercano (6 bloques) |
+| `/banco recargar` | `banco_minecraft_per.admin` | Recargar configuración y tienda |
+
+## NPC y menús
+
+Los NPC son aldeanos sin IA, invulnerables y persistentes. Clic derecho abre su menú
+(menús tipo cofre que funcionan con Minecraft vanilla, gracias a SGUI):
+
+- **Banquero:** saldo, depositar todo / lo de la mano, ordenar efectivo,
+  cambiar a sencillo (100 → 50 + 50) y retirar S/ 10 · 50 · 100 · 500 · 1,000 · 5,000 · 10,000.
+- **Tendero:** la tienda del servidor (igual que `/tienda`).
+
+## Tienda del servidor
+
+- Categorías y productos en `config/banco_minecraft_per/tienda.json` (se crea con
+  precios base la primera vez). Edítalo y usa `/banco recargar`.
+- En el menú: **clic izquierdo** compra 1 lote, **shift + izquierdo** compra 8 lotes,
+  **clic derecho** vende 1 lote, **shift + derecho** vende todo lo que tengas.
+- Las compras se cobran del banco; si no alcanza, se deposita automáticamente el
+  efectivo del inventario y se cobra de ahí.
+- Solo se compran ítems "limpios" (sin encantar, renombrar ni dañar).
+- Impuestos en `banco.json`: `impuestoComprasPorcentaje` (5% por defecto, se suma al
+  precio) e `impuestoVentasPorcentaje` (0% por defecto, se descuenta de lo que recibes).
+
+Formato de un producto:
+
+```json
+{ "item": "minecraft:diamond", "categoria": "minerales", "compra": 160, "venta": 80, "lote": 1 }
+```
+
+`compra` = lo que paga el jugador (0 = no se vende), `venta` = lo que recibe (0 = no se compra),
+`lote` = unidades por precio (p. ej. 16 flechas).
 
 Sin LuckPerms, los permisos de admin equivalen a nivel de operador 3.
 Con LuckPerms, dáselos al grupo admin:
@@ -44,7 +79,9 @@ Con LuckPerms, dáselos al grupo admin:
 
 | Ruta (dentro de `/data`) | Contenido |
 |---|---|
-| `config/banco_minecraft_per/banco.json` | Configuración: saldo inicial, impuesto de pagos, retiro máximo, tamaño del ranking |
+| `config/banco_minecraft_per/banco.json` | Configuración: saldo inicial, impuestos, retiro máximo, tamaño del ranking |
+| `config/banco_minecraft_per/tienda.json` | Categorías y precios de la tienda |
+| `banco_minecraft_per/npcs.json` | NPC creados (UUID → tipo) |
 | `banco_minecraft_per/cuentas.json` | Saldos (entra en los backups automáticos) |
 | `banco_minecraft_per/transacciones.log` | Registro de cada movimiento: `fecha;tipo;origen;destino;monto;impuesto;detalle` |
 
@@ -72,11 +109,17 @@ src/main/kotlin/io/github/andrexifor/banco/
 │   ├── Denominacion.kt    # las 12 piezas
 │   ├── Desglose.kt        # monto -> piezas (mínimo número de piezas)
 │   ├── Banco.kt           # cuentas, transferencias, impuesto
+│   ├── Tienda.kt          # catálogo y cálculo de precios
 │   ├── Configuracion.kt
 │   └── Formato.kt
 └── juego/                 # todo lo que toca Minecraft
     ├── Efectivo.kt        # crear/reconocer ítems de efectivo, inventario
+    ├── Operaciones.kt     # retirar, depositar, pagar, cobrar, abonar (comandos y menús)
     ├── Comandos.kt
+    ├── Npcs.kt            # crear/quitar NPC y abrir su menú
+    ├── GuiBanquero.kt     # menú del banquero
+    ├── GuiTienda.kt       # tienda del servidor y /vender
+    ├── GuiUtil.kt
     └── Almacen.kt         # JSON + log de transacciones
 resourcepack/              # texturas (16x16) y modelos
 scripts/generar_texturas.py  # regenera las texturas de partida

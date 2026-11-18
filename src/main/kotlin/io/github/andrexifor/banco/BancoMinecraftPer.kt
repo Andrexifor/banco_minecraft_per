@@ -2,7 +2,9 @@ package io.github.andrexifor.banco
 
 import io.github.andrexifor.banco.juego.Almacen
 import io.github.andrexifor.banco.juego.Comandos
+import io.github.andrexifor.banco.juego.Npcs
 import io.github.andrexifor.banco.nucleo.Banco
+import io.github.andrexifor.banco.nucleo.Catalogo
 import io.github.andrexifor.banco.nucleo.Configuracion
 import io.github.andrexifor.banco.nucleo.Formato
 import net.fabricmc.api.DedicatedServerModInitializer
@@ -25,6 +27,8 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         private set
     lateinit var banco: Banco
         private set
+    lateinit var catalogo: Catalogo
+        private set
 
     override fun onInitializeServer() {
         val loader = FabricLoader.getInstance()
@@ -34,7 +38,14 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         )
         config = almacen.cargarConfiguracion()
         banco = almacen.cargarBanco()
-        LOGGER.info("Banco Minecraft PER listo: {} cuentas cargadas", banco.todas().size)
+        catalogo = almacen.cargarCatalogo()
+        Npcs.cargar()
+        Npcs.registrarEventos()
+        LOGGER.info(
+            "Banco Minecraft PER listo: {} cuentas, {} productos en la tienda",
+            banco.todas().size,
+            catalogo.productos.size,
+        )
 
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ -> Comandos.registrar(dispatcher) }
 
@@ -66,5 +77,6 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
 
     fun recargarConfiguracion() {
         config = almacen.cargarConfiguracion()
+        catalogo = almacen.cargarCatalogo()
     }
 }

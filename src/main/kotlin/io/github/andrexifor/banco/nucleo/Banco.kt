@@ -96,13 +96,18 @@ class Banco(
     fun ranking(limite: Int): List<Pair<UUID, Cuenta>> =
         cuentas.entries.sortedByDescending { it.value.saldo }.take(limite).map { it.key to it.value }
 
-    fun calcularImpuesto(monto: Long, porcentaje: Double): Long {
-        if (porcentaje <= 0.0) return 0
-        return Math.floorDiv(Math.round(monto * porcentaje), 100L).coerceAtLeast(0)
-    }
+    fun calcularImpuesto(monto: Long, porcentaje: Double): Long = Impuestos.calcular(monto, porcentaje)
 
     private fun sumarSeguro(a: Long, b: Long): Long? {
         val r = try { Math.addExact(a, b) } catch (e: ArithmeticException) { return null }
         return if (r > SALDO_MAXIMO) null else r
+    }
+}
+
+/** Impuesto redondeado hacia abajo: 5% de 19 = 0, 5% de 20 = 1. */
+object Impuestos {
+    fun calcular(monto: Long, porcentaje: Double): Long {
+        if (porcentaje <= 0.0 || monto <= 0) return 0
+        return Math.floorDiv(Math.round(monto * porcentaje), 100L).coerceAtLeast(0)
     }
 }

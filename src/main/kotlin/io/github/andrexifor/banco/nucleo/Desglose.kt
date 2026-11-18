@@ -9,18 +9,29 @@ object Desglose {
     const val MAX_POR_STACK = 64
 
     /** Devuelve solo las denominaciones usadas, de mayor a menor. */
-    fun desglosar(monto: Long): Map<Denominacion, Long> {
+    fun desglosar(monto: Long): Map<Denominacion, Long> = desglosar(monto, Long.MAX_VALUE)
+
+    /**
+     * Igual que [desglosar], pero solo usa denominaciones con valor < [menorQue].
+     * Sirve para "cambiar a sencillo": un billete de 100 -> 50 + 50.
+     * Si no se puede desglosar completo (S/ 1 sin monedas menores), devuelve un mapa vacío.
+     */
+    fun desglosar(monto: Long, menorQue: Long): Map<Denominacion, Long> {
         require(monto >= 0) { "El monto no puede ser negativo: $monto" }
         val resultado = linkedMapOf<Denominacion, Long>()
         var resto = monto
-        for (d in Denominacion.DESCENDENTE) {
+        for (d in Denominacion.DESCENDENTE.filter { it.valor < menorQue }) {
             val cantidad = resto / d.valor
             if (cantidad > 0) {
                 resultado[d] = cantidad
                 resto -= cantidad * d.valor
             }
         }
-        check(resto == 0L) { "Desglose incompleto, resto=$resto" }
+        if (resto != 0L) {
+            // Solo pasa si se restringen las denominaciones (p. ej. cambiar una moneda de S/ 1)
+            check(menorQue != Long.MAX_VALUE) { "Desglose incompleto, resto=$resto" }
+            return emptyMap()
+        }
         return resultado
     }
 

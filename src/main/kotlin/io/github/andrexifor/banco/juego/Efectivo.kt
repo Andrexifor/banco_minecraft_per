@@ -104,6 +104,14 @@ object Efectivo {
         }
     }
 
+    /** Valor total del efectivo en el inventario, sin quitarlo. */
+    fun valorEnInventario(jugador: ServerPlayer): Long {
+        val inv = jugador.inventory
+        var total = 0L
+        for (i in 0 until inv.containerSize) total = Math.addExact(total, valorDe(inv.getItem(i)))
+        return total
+    }
+
     /** Quita todo el efectivo del inventario y devuelve cuánto valía. */
     fun recogerTodo(jugador: ServerPlayer): Long {
         val inv = jugador.inventory

@@ -4,6 +4,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import io.github.andrexifor.banco.nucleo.Banco
+import io.github.andrexifor.banco.nucleo.Catalogo
 import io.github.andrexifor.banco.nucleo.Configuracion
 import io.github.andrexifor.banco.nucleo.Cuenta
 import java.nio.charset.StandardCharsets
@@ -26,6 +27,8 @@ class Almacen(private val dirConfig: Path, private val dirDatos: Path) {
     private val archivoConfig: Path get() = dirConfig.resolve("banco.json")
     private val archivoCuentas: Path get() = dirDatos.resolve("cuentas.json")
     private val archivoLog: Path get() = dirDatos.resolve("transacciones.log")
+    private val archivoCatalogo: Path get() = dirConfig.resolve("tienda.json")
+    private val archivoNpcs: Path get() = dirDatos.resolve("npcs.json")
 
     fun cargarConfiguracion(): Configuracion {
         Files.createDirectories(dirConfig)
@@ -35,8 +38,37 @@ class Almacen(private val dirConfig: Path, private val dirDatos: Path) {
             return porDefecto
         }
         val texto = Files.readString(archivoConfig, StandardCharsets.UTF_8)
-        val leida = gson.fromJson(texto, Configuracion::class.java) ?: Configuracion()
-        return leida.normalizada()
+        val leida = (gson.fromJson(texto, Configuracion::class.java) ?: Configuracion()).normalizada()
+        // Reescribe el archivo para que aparezcan los campos nuevos de cada versión
+        escribirAtomico(archivoConfig, gson.toJson(leida))
+        return leida
+    }
+
+    fun cargarCatalogo(): Catalogo {
+        Files.createDirectories(dirConfig)
+        if (!Files.exists(archivoCatalogo)) {
+            val porDefecto = Catalogo.porDefecto()
+            escribirAtomico(archivoCatalogo, gson.toJson(porDefecto))
+            return porDefecto
+        }
+        val texto = Files.readString(archivoCatalogo, StandardCharsets.UTF_8)
+        return (gson.fromJson(texto, Catalogo::class.java) ?: Catalogo()).normalizado()
+    }
+
+    /** NPC del banco: UUID de la entidad -> tipo ("banquero", "tendero"). */
+    fun cargarNpcs(): MutableMap<UUID, String> {
+        val npcs = linkedMapOf<UUID, String>()
+        if (!Files.exists(archivoNpcs)) return npcs
+        val raiz = JsonParser.parseString(Files.readString(archivoNpcs, StandardCharsets.UTF_8)).asJsonObject
+        raiz.entrySet().forEach { (uuid, tipo) -> npcs[UUID.fromString(uuid)] = tipo.asString }
+        return npcs
+    }
+
+    fun guardarNpcs(npcs: Map<UUID, String>) {
+        Files.createDirectories(dirDatos)
+        val raiz = JsonObject()
+        npcs.forEach { (uuid, tipo) -> raiz.addProperty(uuid.toString(), tipo) }
+        escribirAtomico(archivoNpcs, gson.toJson(raiz))
     }
 
     fun cargarBanco(): Banco {

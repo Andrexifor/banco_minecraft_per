@@ -15,6 +15,7 @@ val loaderVersion: String by project
 val fabricApiVersion: String by project
 val fabricKotlinVersion: String by project
 val permissionsApiVersion: String by project
+val sguiVersion: String by project
 
 base.archivesName.set(modId)
 version = modVersion
@@ -22,6 +23,7 @@ group = mavenGroup
 
 repositories {
     maven("https://maven.fabricmc.net/")
+    maven("https://maven.nucleoid.xyz/") // SGUI (menús de servidor)
     mavenCentral()
 }
 
@@ -34,6 +36,10 @@ dependencies {
     // Permisos (LuckPerms): se incluye dentro del .jar
     implementation("me.lucko:fabric-permissions-api:$permissionsApiVersion")
     include("me.lucko:fabric-permissions-api:$permissionsApiVersion")
+
+    // Menús tipo cofre que funcionan con clientes vanilla: se incluye dentro del .jar
+    implementation("eu.pb4:sgui:$sguiVersion")
+    include("eu.pb4:sgui:$sguiVersion")
 
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
