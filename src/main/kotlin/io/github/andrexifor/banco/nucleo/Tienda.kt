@@ -41,7 +41,10 @@ data class Catalogo(
     }
 
     companion object {
-        /** Catálogo inicial: los mismos precios base que tenía Viper, ampliados. */
+        /**
+         * Catálogo inicial. Los ítems que se pueden farmear en masa (esmeralda, perla,
+         * pólvora, blaze, oro, caña) se venden barato para que no inflen la economía.
+         */
         fun porDefecto(): Catalogo {
             val c = Catalogo(
                 categorias = mutableListOf(
@@ -59,12 +62,12 @@ data class Catalogo(
             p("coal", "minerales", 4, 2)
             p("copper_ingot", "minerales", 6, 3)
             p("iron_ingot", "minerales", 16, 8)
-            p("gold_ingot", "minerales", 30, 15)
+            p("gold_ingot", "minerales", 20, 5) // granjas de piglins: venta baja
             p("redstone", "minerales", 4, 2)
             p("lapis_lazuli", "minerales", 6, 3)
             p("quartz", "minerales", 8, 4)
             p("amethyst_shard", "minerales", 6, 3)
-            p("emerald", "minerales", 100, 50)
+            p("emerald", "minerales", 100, 12) // aldeanos dan esmeraldas casi infinitas
             p("diamond", "minerales", 160, 80)
             p("netherite_scrap", "minerales", 0, 300)
             // Cultivos
@@ -74,17 +77,17 @@ data class Catalogo(
             p("beetroot", "cultivos", 2, 1)
             p("melon_slice", "cultivos", 2, 1, lote = 2)
             p("pumpkin", "cultivos", 6, 3)
-            p("sugar_cane", "cultivos", 2, 1)
+            p("sugar_cane", "cultivos", 8, 1, lote = 4) // se automatiza en masa
             p("cocoa_beans", "cultivos", 4, 2)
             p("nether_wart", "cultivos", 4, 2)
             // Botín de mobs
             p("rotten_flesh", "mobs", 0, 1, lote = 4)
             p("bone", "mobs", 4, 2)
             p("string", "mobs", 4, 2)
-            p("gunpowder", "mobs", 10, 5)
+            p("gunpowder", "mobs", 10, 2) // granjas de creepers
             p("spider_eye", "mobs", 0, 2)
-            p("ender_pearl", "mobs", 40, 20)
-            p("blaze_rod", "mobs", 40, 20)
+            p("ender_pearl", "mobs", 40, 5) // granjas de enderman
+            p("blaze_rod", "mobs", 40, 8) // granjas de blaze
             // Bloques
             p("oak_log", "bloques", 3, 1)
             p("cobblestone", "bloques", 1, 0, lote = 16)
