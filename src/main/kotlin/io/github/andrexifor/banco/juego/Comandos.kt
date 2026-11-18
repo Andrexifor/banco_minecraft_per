@@ -94,16 +94,8 @@ object Comandos {
                 )
                 .then(
                     literal("npc").requires(admin)
-                        .then(
-                            literal("crear").then(
-                                argument("tipo", StringArgumentType.word())
-                                    .suggests { _, b ->
-                                        TipoNpc.entries.forEach { t -> b.suggest(t.id) }
-                                        b.buildFuture()
-                                    }
-                                    .executes { crearNpc(it) },
-                            ),
-                        )
+                        .then(literal("crear").then(argumentoTipoNpc().executes { crearNpc(it, crearAldeano = true) }))
+                        .then(literal("asignar").then(argumentoTipoNpc().executes { crearNpc(it, crearAldeano = false) }))
                         .then(literal("quitar").executes { quitarNpc(it) }),
                 )
                 .then(literal("recargar").requires(admin).executes { recargar(it) }),
@@ -197,26 +189,30 @@ object Comandos {
         return 1
     }
 
-    private fun crearNpc(ctx: CommandContext<CommandSourceStack>): Int {
+    private fun argumentoTipoNpc() =
+        argument("tipo", StringArgumentType.word()).suggests { _, b ->
+            TipoNpc.entries.forEach { t -> b.suggest(t.id) }
+            b.buildFuture()
+        }
+
+    private fun crearNpc(ctx: CommandContext<CommandSourceStack>, crearAldeano: Boolean): Int {
         val jugador = ctx.source.playerOrException
         val id = StringArgumentType.getString(ctx, "tipo")
         val tipo = TipoNpc.porId(id) ?: return error(ctx, "Tipo de NPC desconocido: $id (usa: ${TipoNpc.entries.joinToString { it.id }})")
-        return if (Npcs.crear(jugador, tipo)) {
-            ok(ctx, "${tipo.nombre} creado aquí", avisarAdmins = true)
-            1
+        if (crearAldeano) {
+            Npcs.crear(jugador, tipo)
+            ok(ctx, "${tipo.nombre} creado. Hazle clic derecho (tienes 60 s) para activarlo.", avisarAdmins = true)
         } else {
-            error(ctx, "No se pudo crear el NPC (revisa el log del servidor)")
+            Npcs.esperarAsignacion(jugador, tipo)
+            ok(ctx, "Haz clic derecho al aldeano que quieres convertir en ${tipo.nombre} (tienes 60 s).")
         }
+        return 1
     }
 
     private fun quitarNpc(ctx: CommandContext<CommandSourceStack>): Int {
-        val jugador = ctx.source.playerOrException
-        return if (Npcs.quitarCercano(jugador)) {
-            ok(ctx, "NPC eliminado", avisarAdmins = true)
-            1
-        } else {
-            error(ctx, "No hay ningún NPC del banco a menos de 6 bloques")
-        }
+        Npcs.esperarQuitar(ctx.source.playerOrException)
+        ok(ctx, "Haz clic derecho al NPC del banco que quieres eliminar (tienes 60 s).")
+        return 1
     }
 
     private fun recargar(ctx: CommandContext<CommandSourceStack>): Int {

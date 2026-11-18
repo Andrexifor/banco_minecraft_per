@@ -36,8 +36,9 @@ el resource pack que el servidor les ofrece al conectarse.
 | `/banco top` | todos | Ranking de saldos |
 | `/banco dar\|quitar\|fijar <jugador> <monto>` | `banco_minecraft_per.admin` | Administración |
 | `/banco crear <denominacion> <cantidad>` | `banco_minecraft_per.admin` | Crear efectivo (pruebas) |
-| `/banco npc crear banquero\|tendero` | `banco_minecraft_per.admin` | Crea el NPC donde estás parado |
-| `/banco npc quitar` | `banco_minecraft_per.admin` | Elimina el NPC del banco más cercano (6 bloques) |
+| `/banco npc crear banquero\|tendero` | `banco_minecraft_per.admin` | Crea el aldeano donde estás parado; luego **clic derecho** sobre él para activarlo |
+| `/banco npc asignar banquero\|tendero` | `banco_minecraft_per.admin` | Convierte en NPC al próximo aldeano que toques |
+| `/banco npc quitar` | `banco_minecraft_per.admin` | Elimina el próximo NPC del banco que toques |
 | `/banco recargar` | `banco_minecraft_per.admin` | Recargar configuración y tienda |
 
 ## NPC y menús
