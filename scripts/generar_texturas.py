@@ -89,6 +89,26 @@ def moneda(valor: int, color) -> Image.Image:
     return img
 
 
+def kit(color_caja, color_simbolo, simbolo: str) -> Image.Image:
+    """Caja de herramientas 16x16 con un símbolo: A (armadura), E (espada), H (herramienta)."""
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    oscuro = tuple(max(0, c - 70) for c in color_caja)
+    d.rectangle([5, 2, 10, 4], outline=oscuro + (255,))          # asa
+    d.rectangle([1, 4, 14, 13], fill=color_caja + (255,), outline=oscuro + (255,))
+    d.line([1, 7, 14, 7], fill=oscuro + (255,))
+    patrones = {
+        "A": ["010", "101", "111", "101", "101"],
+        "E": ["001", "010", "100", "110", "010"],
+        "H": ["111", "010", "010", "010", "010"],
+    }
+    for fy, fila in enumerate(patrones[simbolo]):
+        for fx, bit in enumerate(fila):
+            if bit == "1":
+                img.putpixel((7 + fx - 1, 8 + fy), color_simbolo + (255,))
+    return img
+
+
 def escribir_json(ruta: Path, datos: dict):
     ruta.parent.mkdir(parents=True, exist_ok=True)
     ruta.write_text(json.dumps(datos, indent=2) + "\n", encoding="utf-8")
@@ -116,6 +136,9 @@ def main():
         registrar(f"billete_{v}", billete(v, f, t))
     for v, (f, o) in BONOS.items():
         registrar(f"bono_{v}", bono(v, f, o))
+    registrar("kit_armadura", kit((70, 110, 170), (230, 230, 240), "A"))
+    registrar("kit_armas", kit((170, 60, 60), (240, 230, 230), "E"))
+    registrar("kit_herramientas", kit((90, 140, 70), (240, 240, 230), "H"))
     print("Texturas generadas en", RAIZ)
 
 

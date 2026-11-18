@@ -5,6 +5,8 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import io.github.andrexifor.banco.nucleo.Banco
 import io.github.andrexifor.banco.nucleo.Catalogo
+import io.github.andrexifor.banco.nucleo.CatalogoLegendarios
+import io.github.andrexifor.banco.nucleo.ConfigHerrero
 import io.github.andrexifor.banco.nucleo.Configuracion
 import io.github.andrexifor.banco.nucleo.Cuenta
 import java.nio.charset.StandardCharsets
@@ -29,6 +31,8 @@ class Almacen(private val dirConfig: Path, private val dirDatos: Path) {
     private val archivoLog: Path get() = dirDatos.resolve("transacciones.log")
     private val archivoCatalogo: Path get() = dirConfig.resolve("tienda.json")
     private val archivoNpcs: Path get() = dirDatos.resolve("npcs.json")
+    private val archivoLegendarios: Path get() = dirConfig.resolve("legendarios.json")
+    private val archivoHerrero: Path get() = dirConfig.resolve("herrero.json")
 
     fun cargarConfiguracion(): Configuracion {
         Files.createDirectories(dirConfig)
@@ -55,7 +59,30 @@ class Almacen(private val dirConfig: Path, private val dirDatos: Path) {
         return (gson.fromJson(texto, Catalogo::class.java) ?: Catalogo()).normalizado()
     }
 
-    /** NPC del banco: UUID de la entidad -> tipo ("banquero", "tendero"). */
+    fun cargarLegendarios(): CatalogoLegendarios {
+        Files.createDirectories(dirConfig)
+        if (!Files.exists(archivoLegendarios)) {
+            val porDefecto = CatalogoLegendarios.porDefecto()
+            escribirAtomico(archivoLegendarios, gson.toJson(porDefecto))
+            return porDefecto
+        }
+        val texto = Files.readString(archivoLegendarios, StandardCharsets.UTF_8)
+        return (gson.fromJson(texto, CatalogoLegendarios::class.java) ?: CatalogoLegendarios()).normalizado()
+    }
+
+    fun cargarHerrero(): ConfigHerrero {
+        Files.createDirectories(dirConfig)
+        val leida = if (Files.exists(archivoHerrero)) {
+            (gson.fromJson(Files.readString(archivoHerrero, StandardCharsets.UTF_8), ConfigHerrero::class.java) ?: ConfigHerrero())
+        } else {
+            ConfigHerrero()
+        }.normalizada()
+        // Reescribe para que aparezcan los campos nuevos de cada versión
+        escribirAtomico(archivoHerrero, gson.toJson(leida))
+        return leida
+    }
+
+    /** NPC del banco: UUID de la entidad -> tipo ("banquero", "tendero", "herrero", "mercader"). */
     fun cargarNpcs(): MutableMap<UUID, String> {
         val npcs = linkedMapOf<UUID, String>()
         if (!Files.exists(archivoNpcs)) return npcs

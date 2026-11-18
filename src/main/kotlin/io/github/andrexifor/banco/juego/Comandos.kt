@@ -154,7 +154,7 @@ object Comandos {
             "/tienda — comprar y vender",
             "/vender mano | todo — vender rápido a la tienda",
             "/banco top — ranking",
-            "También puedes hablar con el Banquero y el Tendero",
+            "NPC: Banquero, Tendero, Herrero y Mercader legendario",
         )
         lineas.forEach { ctx.source.sendSystemMessage(Component.literal(it).withStyle(ChatFormatting.AQUA)) }
         return 1
@@ -217,7 +217,12 @@ object Comandos {
 
     private fun recargar(ctx: CommandContext<CommandSourceStack>): Int {
         BancoMinecraftPer.recargarConfiguracion()
-        ok(ctx, "Configuración y tienda recargadas (${BancoMinecraftPer.catalogo.productos.size} productos)", avisarAdmins = true)
+        ok(
+            ctx,
+            "Recargado: ${BancoMinecraftPer.catalogo.productos.size} productos, " +
+                "${BancoMinecraftPer.legendarios.legendarios.size} legendarios y precios del herrero",
+            avisarAdmins = true,
+        )
         return 1
     }
 

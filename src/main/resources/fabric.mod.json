@@ -4,7 +4,9 @@
   "version": "${version}",
   "name": "Banco Minecraft PER",
   "description": "Economía en soles para servidores Fabric: banco, billetes, monedas y bonos de reserva. Solo servidor.",
-  "authors": ["Andrexifor"],
+  "authors": [
+    "Andrexifor"
+  ],
   "contact": {
     "sources": "https://github.com/Andrexifor/banco_minecraft_per"
   },
@@ -23,5 +25,8 @@
     "java": ">=25",
     "fabric-api": "*",
     "fabric-language-kotlin": ">=${fabricKotlin}"
-  }
+  },
+  "mixins": [
+    "banco_minecraft_per.mixins.json"
+  ]
 }

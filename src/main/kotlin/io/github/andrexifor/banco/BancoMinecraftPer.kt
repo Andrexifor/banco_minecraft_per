@@ -2,9 +2,12 @@ package io.github.andrexifor.banco
 
 import io.github.andrexifor.banco.juego.Almacen
 import io.github.andrexifor.banco.juego.Comandos
+import io.github.andrexifor.banco.juego.KitsReparacion
 import io.github.andrexifor.banco.juego.Npcs
 import io.github.andrexifor.banco.nucleo.Banco
 import io.github.andrexifor.banco.nucleo.Catalogo
+import io.github.andrexifor.banco.nucleo.CatalogoLegendarios
+import io.github.andrexifor.banco.nucleo.ConfigHerrero
 import io.github.andrexifor.banco.nucleo.Configuracion
 import io.github.andrexifor.banco.nucleo.Formato
 import net.fabricmc.api.DedicatedServerModInitializer
@@ -29,6 +32,10 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         private set
     lateinit var catalogo: Catalogo
         private set
+    lateinit var legendarios: CatalogoLegendarios
+        private set
+    lateinit var herrero: ConfigHerrero
+        private set
 
     override fun onInitializeServer() {
         val loader = FabricLoader.getInstance()
@@ -39,12 +46,16 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         config = almacen.cargarConfiguracion()
         banco = almacen.cargarBanco()
         catalogo = almacen.cargarCatalogo()
+        legendarios = almacen.cargarLegendarios()
+        herrero = almacen.cargarHerrero()
         Npcs.cargar()
         Npcs.registrarEventos()
+        KitsReparacion.registrarEventos()
         LOGGER.info(
-            "Banco Minecraft PER listo: {} cuentas, {} productos en la tienda",
+            "Banco Minecraft PER listo: {} cuentas, {} productos en la tienda, {} legendarios",
             banco.todas().size,
             catalogo.productos.size,
+            legendarios.legendarios.size,
         )
 
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ -> Comandos.registrar(dispatcher) }
@@ -78,5 +89,7 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
     fun recargarConfiguracion() {
         config = almacen.cargarConfiguracion()
         catalogo = almacen.cargarCatalogo()
+        legendarios = almacen.cargarLegendarios()
+        herrero = almacen.cargarHerrero()
     }
 }

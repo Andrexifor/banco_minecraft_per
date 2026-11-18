@@ -4,8 +4,9 @@ Mod de economía en **soles** para servidores Fabric (Minecraft 26.2). Funciona
 **solo en el servidor**: los jugadores entran con Minecraft vanilla y solo aceptan
 el resource pack que el servidor les ofrece al conectarse.
 
-> Fases 1-3 de 6 (ver `diseno-banco_minecraft_per.md` en el proyecto): banco + efectivo,
-> menús con NPC (Banquero, Tendero) y tienda del servidor con impuesto.
+> Fases 1-4 de 6 (ver `diseno-banco_minecraft_per.md` en el proyecto): banco + efectivo,
+> menús con NPC (Banquero, Tendero, Herrero, Mercader legendario), tienda con impuesto,
+> ítems legendarios, kits de reparación y regla de Reparación (Mending).
 > Desde la v0.3.0 reemplaza a Viper Economy.
 
 ## Qué hace
@@ -36,8 +37,8 @@ el resource pack que el servidor les ofrece al conectarse.
 | `/banco top` | todos | Ranking de saldos |
 | `/banco dar\|quitar\|fijar <jugador> <monto>` | `banco_minecraft_per.admin` | Administración |
 | `/banco crear <denominacion> <cantidad>` | `banco_minecraft_per.admin` | Crear efectivo (pruebas) |
-| `/banco npc crear banquero\|tendero` | `banco_minecraft_per.admin` | Crea el aldeano donde estás parado; luego **clic derecho** sobre él para activarlo |
-| `/banco npc asignar banquero\|tendero` | `banco_minecraft_per.admin` | Convierte en NPC al próximo aldeano que toques |
+| `/banco npc crear banquero\|tendero\|herrero\|mercader` | `banco_minecraft_per.admin` | Crea el aldeano donde estás parado; luego **clic derecho** sobre él para activarlo |
+| `/banco npc asignar <tipo>` | `banco_minecraft_per.admin` | Convierte en NPC al próximo aldeano que toques |
 | `/banco npc quitar` | `banco_minecraft_per.admin` | Elimina el próximo NPC del banco que toques |
 | `/banco recargar` | `banco_minecraft_per.admin` | Recargar configuración y tienda |
 
@@ -49,6 +50,32 @@ Los NPC son aldeanos sin IA, invulnerables y persistentes. Clic derecho abre su 
 - **Banquero:** saldo, depositar todo / lo de la mano, ordenar efectivo,
   cambiar a sencillo (100 → 50 + 50) y retirar S/ 10 · 50 · 100 · 500 · 1,000 · 5,000 · 10,000.
 - **Tendero:** la tienda del servidor (igual que `/tienda`).
+- **Herrero:** sobre el ítem de la mano principal:
+  - **Reparar:** precio según el % de daño (×3 si es legendario).
+  - **Combinar libro:** libro encantado en la mano secundaria; cobra soles en vez de
+    niveles de XP y sin "¡Demasiado caro!". Muestra qué se aplicará y qué no antes de cobrar.
+  - **Renombrar:** tarifa fija, con el menú del yunque.
+  - **Kits de reparación** (armadura, armas, herramientas; 1 o 3 usos).
+- **Mercader legendario:** ítems con encantamientos por encima del máximo vanilla
+  (Afilado VI, Poder VI, Protección V…). Pide confirmación antes de cobrar y anuncia
+  la compra en el chat.
+
+## Kits de reparación
+
+Clic derecho para usar. No se gasta el uso si no hay nada que reparar.
+
+| Kit | Repara |
+|---|---|
+| Armadura | Las 4 piezas puestas + 1 escudo (mano secundaria o el primero del inventario). No repara élitros. |
+| Armas | Espada, hacha, arco, ballesta, tridente o maza **en la otra mano** |
+| Herramientas | Pico, pala, azada, hacha, tijeras, caña, mechero, escudo **en la otra mano**, o élitros puestos |
+
+## Regla de Reparación (Mending)
+
+Reparación existe para todos, pero **no se puede poner** en un ítem legendario ni en
+uno con algún encantamiento por encima del máximo vanilla (Afilado VI, Protección V…).
+El yunque deja la casilla de resultado vacía y el Herrero no la ofrece. Esos ítems
+solo se mantienen pagando al Herrero o con kits.
 
 ## Tienda del servidor
 
@@ -82,6 +109,8 @@ Con LuckPerms, dáselos al grupo admin:
 |---|---|
 | `config/banco_minecraft_per/banco.json` | Configuración: saldo inicial, impuestos, retiro máximo, tamaño del ranking |
 | `config/banco_minecraft_per/tienda.json` | Categorías y precios de la tienda |
+| `config/banco_minecraft_per/legendarios.json` | Ítems del Mercader: nombre, ítem, encantamientos y precio |
+| `config/banco_minecraft_per/herrero.json` | Precios de reparar/combinar/renombrar, kits, multiplicador legendario, tope de niveles, impuesto de servicios |
 | `banco_minecraft_per/npcs.json` | NPC creados (UUID → tipo) |
 | `banco_minecraft_per/cuentas.json` | Saldos (entra en los backups automáticos) |
 | `banco_minecraft_per/transacciones.log` | Registro de cada movimiento: `fecha;tipo;origen;destino;monto;impuesto;detalle` |
@@ -111,6 +140,7 @@ src/main/kotlin/io/github/andrexifor/banco/
 │   ├── Desglose.kt        # monto -> piezas (mínimo número de piezas)
 │   ├── Banco.kt           # cuentas, transferencias, impuesto
 │   ├── Tienda.kt          # catálogo y cálculo de precios
+│   ├── Herreria.kt        # legendarios, kits y precios del herrero
 │   ├── Configuracion.kt
 │   └── Formato.kt
 └── juego/                 # todo lo que toca Minecraft
@@ -120,8 +150,14 @@ src/main/kotlin/io/github/andrexifor/banco/
     ├── Npcs.kt            # crear/quitar NPC y abrir su menú
     ├── GuiBanquero.kt     # menú del banquero
     ├── GuiTienda.kt       # tienda del servidor y /vender
+    ├── GuiHerrero.kt      # menú del herrero
+    ├── GuiMercader.kt     # menú del mercader legendario
+    ├── Herrero.kt         # reparar, combinar, renombrar, kits, legendarios
+    ├── KitsReparacion.kt  # kits portátiles (clic derecho)
+    ├── Encantamientos.kt  # legendarios y regla de Mending
     ├── GuiUtil.kt
     └── Almacen.kt         # JSON + log de transacciones
+src/main/java/.../mixin/AnvilMenuMixin.java  # bloquea Mending en el yunque (solo servidor)
 resourcepack/              # texturas (16x16) y modelos
 scripts/generar_texturas.py  # regenera las texturas de partida
 ```

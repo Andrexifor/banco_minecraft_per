@@ -16,6 +16,8 @@ import java.util.UUID
 enum class TipoNpc(val id: String, val nombre: String, val profesion: String) {
     BANQUERO("banquero", "Banquero", "minecraft:librarian"),
     TENDERO("tendero", "Tendero", "minecraft:farmer"),
+    HERRERO("herrero", "Herrero", "minecraft:armorer"),
+    MERCADER("mercader", "Mercader legendario", "minecraft:weaponsmith"),
     ;
 
     companion object {
@@ -78,6 +80,8 @@ object Npcs {
         when (tipo) {
             TipoNpc.BANQUERO -> GuiBanquero.abrir(jugador)
             TipoNpc.TENDERO -> GuiTienda.abrir(jugador)
+            TipoNpc.HERRERO -> GuiHerrero.abrir(jugador)
+            TipoNpc.MERCADER -> GuiMercader.abrir(jugador)
         }
     }
 
