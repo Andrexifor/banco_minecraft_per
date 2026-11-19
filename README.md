@@ -1,6 +1,6 @@
 # Banco Minecraft PER
 
-Mod de economía en **soles** para servidores Fabric (Minecraft 26.2). Funciona
+Mod de economía en **soles** para servidores Fabric (Minecraft 26.3; la 26.2 está en la rama `mc/26.2`). Funciona
 **solo en el servidor**: los jugadores entran con Minecraft vanilla y solo aceptan
 el resource pack que el servidor les ofrece al conectarse.
 
