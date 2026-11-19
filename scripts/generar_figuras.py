@@ -47,7 +47,7 @@ def caja(desde, hasta, caras):
 
 def unku(img):
     elementos = []
-    tramos = [(0, 6), (6, 12), (12, 20), (20, 28), (28, 36), (36, 44), (44, 52), (52, 64)]
+    tramos = [(0, 6), (6, 12), (12, 20), (20, 28), (28, 36), (36, 44)]   # sentado: del regazo para abajo va aparte
     for i, (y0, y1) in enumerate(tramos):
         hw = ancho_filas(img, y0, y1)
         if hw <= 0:
@@ -84,15 +84,30 @@ def capa(px0, py0, px1, py1, z0, z1):
 
 
 def cuerpo_oculto():
-    """Cuello y piernas: dan forma humana. Las piernas quedan casi ocultas tras el mostrador."""
+    """Cuerpo sentado en una tiana (el asiento ceremonial de los señores incas): cuello, regazo
+    cubierto por el unku (con su ruedo de flecos cayendo sobre las rodillas), piernas, pies y el asiento."""
     tela = uv(20, 40, 24, 44)          # trozo de la tela del unku
     piel = uv(21, 43, 25, 47)          # mejilla de la máscara: el "material" del ser
+    oro = [0, 0, 16, 16]
     def bloque(desde, hasta, cara, tex):
         return caja(desde, hasta, {f: {"uv": cara, "texture": tex} for f in ("north", "south", "east", "west", "up", "down")})
+    regazo = caja([1.5, 0, 5], [14.5, 3.6, 15.5], {
+        "south": {"uv": uv(10, 52, 54, 64), "texture": "#unku"},     # ruedo con flecos sobre las rodillas
+        "up": {"uv": uv(14, 36, 50, 50), "texture": "#unku"},
+        "east": {"uv": uv(14, 44, 40, 52), "texture": "#unku"},
+        "west": {"uv": uv(14, 44, 40, 52), "texture": "#unku"},
+        "down": {"uv": tela, "texture": "#unku"},
+    })
     return [
         bloque([6, 17.5, 6.5], [10, 21, 9.5], piel, "#mascara"),          # cuello
-        # cabeza: volumen detrás de la máscara (el tocado la envuelve), para que de costado
-        # no parezca una placa sin cabeza
+        regazo,
+        bloque([4.5, -9, 12], [7.5, 0.5, 15], tela, "#unku"),             # pierna izquierda
+        bloque([8.5, -9, 12], [11.5, 0.5, 15], tela, "#unku"),            # pierna derecha
+        bloque([4.25, -10, 11.5], [7.75, -9, 17], piel, "#mascara"),      # pie izquierdo
+        bloque([8.25, -10, 11.5], [11.75, -9, 17], piel, "#mascara"),     # pie derecho
+        bloque([2, -1, 3], [14, 0, 13], oro, "#tiana"),                    # asiento de la tiana
+        bloque([4, -10, 5], [12, -1, 11], oro, "#base"),                   # pie de la tiana
+        # cabeza: volumen detrás de la máscara (el tocado la envuelve)
         caja([4.25, 20.5, 4], [11.75, 30.5, 9.5], {
             "east": {"uv": uv(22, 4, 42, 16), "texture": "#mascara"},
             "west": {"uv": uv(22, 4, 42, 16), "texture": "#mascara"},
@@ -100,17 +115,13 @@ def cuerpo_oculto():
             "up": {"uv": uv(24, 6, 40, 14), "texture": "#mascara"},
             "down": {"uv": uv(21, 43, 25, 47), "texture": "#mascara"},
         }),
-        bloque([4.5, -9, 6.5], [7.5, -4, 9.5], tela, "#unku"),            # pierna izquierda
-        bloque([8.5, -9, 6.5], [11.5, -4, 9.5], tela, "#unku"),           # pierna derecha
-        bloque([4.25, -10, 6], [7.75, -9, 10.5], piel, "#mascara"),       # pie izquierdo
-        bloque([8.25, -10, 6], [11.75, -9, 10.5], piel, "#mascara"),      # pie derecho
     ]
 
 
 # punto de agarre de cada arma en su textura de 64 px (dónde la sostiene la mano)
 AGARRE = {"banquero": (22, 45), "tendero": (34, 26), "herrero": (17, 48), "mercader": (32, 38)}
 K_ARMA = 0.3125      # 64 px -> 20 unidades
-MANO = (17.0, 7.5, 13.5)
+MANO = (17.0, 6.5, 13.0)
 
 
 def brazo_y_arma(ser):
@@ -129,7 +140,7 @@ def brazo_y_arma(ser):
     })
     return [
         bloque([16.25, 10, 6.5], [19.25, 19, 10], tela, "#unku"),        # brazo (manga)
-        bloque([16, 6.5, 7], [19, 10, 12.5], tela, "#unku"),            # antebrazo hacia adelante
+        bloque([16, 5.5, 7], [19, 10, 11.5], tela, "#unku"),            # antebrazo hacia adelante
         bloque([mx - 1.5, my - 1.5, mz - 1.5], [mx + 1.5, my + 1.5, mz + 1.5], piel, "#mascara"),  # mano
         arma,
     ]
@@ -157,6 +168,8 @@ def main():
             "textures": {"unku": f"banco_minecraft_per:item/unku_{ser}",
                          "mascara": f"banco_minecraft_per:item/mascara_{ser}",
                          "arma": f"banco_minecraft_per:item/arma_{ser}",
+                         "tiana": "minecraft:block/gold_block",
+                         "base": "minecraft:block/chiseled_red_sandstone",
                          "particle": f"banco_minecraft_per:item/unku_{ser}"},
             "elements": unku(img) + mascara() + cuerpo_oculto() + brazo_y_arma(ser),
             "display": {"fixed": {"rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": [1, 1, 1]}},
