@@ -105,6 +105,19 @@ Con LuckPerms, dáselos al grupo admin:
 `lp group admin permission set banco_minecraft_per.admin true`
 (el grupo admin del servidor ya tiene `*`).
 
+## Skins de los NPC (maniquíes)
+
+El resource pack trae 4 skins con temática inca en `textures/entity/npc/`
+(banquero, tendero, herrero, mercader), generadas con `scripts/generar_skins.py`.
+Se usan con maniquíes vanilla, que cualquier cliente ve sin mods:
+
+```
+summon minecraft:mannequin ~ ~ ~ {profile:{texture:"banco_minecraft_per:entity/npc/banquero",model:"wide"}}
+```
+
+Luego `/banco npc asignar banquero` + clic al maniquí. Quien no acepte el resource pack
+los ve con textura faltante.
+
 ## Zonas protegidas
 
 Dentro de una zona protegida **nadie en supervivencia** puede romper o poner bloques, abrir
