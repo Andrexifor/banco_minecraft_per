@@ -2,14 +2,18 @@ package io.github.andrexifor.banco
 
 import io.github.andrexifor.banco.juego.Almacen
 import io.github.andrexifor.banco.juego.Comandos
+import io.github.andrexifor.banco.juego.Bromas
 import io.github.andrexifor.banco.juego.ImanBotin
+import io.github.andrexifor.banco.juego.Logros
 import io.github.andrexifor.banco.juego.KitsReparacion
 import io.github.andrexifor.banco.juego.Npcs
 import io.github.andrexifor.banco.juego.Proteccion
 import io.github.andrexifor.banco.nucleo.Banco
 import io.github.andrexifor.banco.nucleo.Catalogo
 import io.github.andrexifor.banco.nucleo.CatalogoLegendarios
+import io.github.andrexifor.banco.nucleo.CatalogoOfertas
 import io.github.andrexifor.banco.nucleo.ConfigHerrero
+import io.github.andrexifor.banco.nucleo.ConfigMercadoNegro
 import io.github.andrexifor.banco.nucleo.ConfigZonas
 import io.github.andrexifor.banco.nucleo.Configuracion
 import io.github.andrexifor.banco.nucleo.Formato
@@ -41,6 +45,12 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         private set
     lateinit var zonas: ConfigZonas
         private set
+    lateinit var bromas: CatalogoOfertas
+        private set
+    lateinit var contrabando: CatalogoOfertas
+        private set
+    lateinit var mercadoNegro: ConfigMercadoNegro
+        private set
 
     override fun onInitializeServer() {
         val loader = FabricLoader.getInstance()
@@ -54,11 +64,17 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         legendarios = almacen.cargarLegendarios()
         herrero = almacen.cargarHerrero()
         zonas = almacen.cargarZonas()
+        bromas = almacen.cargarBromas()
+        contrabando = almacen.cargarContrabando()
+        mercadoNegro = almacen.cargarMercadoNegro()
         Npcs.cargar()
+        Logros.cargar()
         Npcs.registrarEventos()
         KitsReparacion.registrarEventos()
         ImanBotin.registrarEventos()
         Proteccion.registrarEventos()
+        Bromas.registrarEventos()
+        Logros.registrarEventos()
         LOGGER.info(
             "Banco Minecraft PER listo: {} cuentas, {} productos en la tienda, {} legendarios, {} zonas protegidas",
             banco.todas().size,
@@ -84,7 +100,11 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
             }
         }
 
-        ServerLifecycleEvents.SERVER_STOPPING.register { _ -> guardar() }
+        ServerLifecycleEvents.SERVER_STOPPING.register { _ ->
+            guardar()
+            Logros.marcarCambio()
+            Logros.guardar()
+        }
     }
 
     fun guardar() {
@@ -101,5 +121,8 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         legendarios = almacen.cargarLegendarios()
         herrero = almacen.cargarHerrero()
         zonas = almacen.cargarZonas()
+        bromas = almacen.cargarBromas()
+        contrabando = almacen.cargarContrabando()
+        mercadoNegro = almacen.cargarMercadoNegro()
     }
 }

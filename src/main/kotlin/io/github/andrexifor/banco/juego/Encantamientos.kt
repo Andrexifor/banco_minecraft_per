@@ -91,6 +91,7 @@ object Encantamientos {
         stack.set(DataComponents.ENCHANTMENTS, mutable.toImmutable())
         val interno = CompoundTag()
         interno.putBoolean("legendario", true)
+        interno.putString("id", l.id)
         if (l.iman) interno.putBoolean("iman", true)
         val datos = CompoundTag()
         datos.put(CLAVE, interno)

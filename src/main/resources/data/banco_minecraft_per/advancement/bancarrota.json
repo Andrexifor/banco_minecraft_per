@@ -1,0 +1,19 @@
+{
+  "parent": "banco_minecraft_per:raiz",
+  "display": {
+    "icon": {
+      "id": "minecraft:bowl"
+    },
+    "title": "Bancarrota",
+    "description": "Queda con S/ 0 después de haber tenido más de S/ 100,000",
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "otorgado": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

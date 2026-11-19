@@ -1,0 +1,19 @@
+{
+  "parent": "banco_minecraft_per:raiz",
+  "display": {
+    "icon": {
+      "id": "minecraft:obsidian"
+    },
+    "title": "Peaje del Inti",
+    "description": "Cruza el portal de la plaza hasta la sala bajo la roca madre",
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "otorgado": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

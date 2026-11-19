@@ -1,0 +1,19 @@
+{
+  "parent": "banco_minecraft_per:dioses",
+  "display": {
+    "icon": {
+      "id": "minecraft:crying_obsidian"
+    },
+    "title": "Cliente VIP del mercado negro",
+    "description": "Compra 5 cosas en el mercado negro",
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "otorgado": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

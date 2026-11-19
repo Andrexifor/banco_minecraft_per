@@ -1,0 +1,19 @@
+{
+  "parent": "banco_minecraft_per:raiz",
+  "display": {
+    "icon": {
+      "id": "minecraft:gold_block"
+    },
+    "title": "Ni el Tahuantinsuyo tenía tanto",
+    "description": "Llena todo tu inventario con bonos de S/ 10,000 (S/ 23,040,000)",
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "otorgado": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

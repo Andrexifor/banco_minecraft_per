@@ -1,0 +1,19 @@
+{
+  "parent": "banco_minecraft_per:raiz",
+  "display": {
+    "icon": {
+      "id": "minecraft:barrier"
+    },
+    "title": "Fiado no hay",
+    "description": "Intenta comprar algo sin que te alcance",
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "otorgado": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

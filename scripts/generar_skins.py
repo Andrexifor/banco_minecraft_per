@@ -228,7 +228,58 @@ def mercader():
     return s
 
 
-SKINS = {"banquero": banquero, "tendero": tendero, "herrero": herrero, "mercader": mercader}
+# ------------------------------------------------------------------ Mercader de bromas (danzante de tijeras)
+def bromista():
+    s = Skin()
+    cabeza_base(s)
+    # sombrero de danzante con espejos y flecos de colores
+    colores = [ROJO, AMARILLO, VERDE, AZUL, MORADO, NARANJA]
+    s.todo("sombrero", lambda x, y: (colores[x % 6] if y == 0 else (ORO if y == 1 else None)), lambda x, y: colores[(x + y) % 6])
+    s.cara("sombrero", "frente", lambda x, y, W, H: (TURQ if (y == 0 and x in (3, 4)) else (colores[x % 6] if y == 0 else (ORO_L if y == 1 and x % 2 else (ORO if y == 1 else (colores[x % 6] if y == 2 and x % 2 == 0 else None))))))
+    # chaqueta bordada con lentejuelas
+    def chaqueta(x, y):
+        if y in (0, 11):
+            return ORO
+        if (x + y) % 4 == 0:
+            return ORO_L
+        return [ROJO, ROJO, MORADO][(y // 4) % 3]
+    s.todo("cuerpo", chaqueta, lambda x, y: ROJO)
+    s.cara("chaqueta", "frente", lambda x, y, W, H: (TURQ if (x, y) in ((2, 3), (5, 3), (3, 6), (4, 6), (2, 9), (5, 9)) else None))
+    brazos(s, MORADO, 7, ORO)
+    for p in ("manga_d", "manga_i"):
+        s.todo(p, lambda x, y: [ROJO, AMARILLO, VERDE][y % 3] if y in (2, 5) else None)
+    piernas(s, hexc("1f3f7a"), NEGRO, banda=ORO)
+    for p in ("pantalon_d", "pantalon_i"):
+        s.todo(p, lambda x, y: [ROJO, AMARILLO, VERDE, AZUL][x % 4] if y in (6, 7) else None)
+    return s
+
+
+# ------------------------------------------------------------------ Contrabandista (mercado negro)
+def contrabandista():
+    s = Skin()
+    cabeza_base(s, ojos=hexc("b3261e"))
+    CAPA = hexc("1b1717"); CAPA_L = hexc("2c2626")
+    # capucha oscura que tapa casi toda la cabeza
+    s.todo("sombrero", lambda x, y: CAPA, lambda x, y: CAPA)
+    s.cara("sombrero", "frente", lambda x, y, W, H: (CAPA if (y < 3 or x in (0, 7)) else (CAPA_L if y == 3 else (0, 0, 0, 0))))
+    # pañuelo que tapa la boca
+    s.cara("cabeza", "frente", lambda x, y, W, H: (hexc("3a2f2f") if y >= 5 else None))
+    s.cara("cabeza", "frente", lambda x, y, W, H: ({1: OJO_B, 2: hexc("b3261e"), 5: hexc("b3261e"), 6: OJO_B}.get(x) if y == 4 else None))
+    # túnica negra con cinturón y bolsas de oro escondidas
+    def tunica(x, y):
+        if y == 7:
+            return CUERO
+        return CAPA if (x + y) % 5 else CAPA_L
+    s.todo("cuerpo", tunica, lambda x, y: CAPA)
+    s.cara("chaqueta", "frente", lambda x, y, W, H: (ORO if (x, y) in ((5, 8), (6, 8), (5, 9), (6, 9)) else (ORO_S if (x, y) == (6, 7) else None)))
+    s.todo("chaqueta", lambda x, y: CAPA_L if y < 2 else None)
+    brazos(s, CAPA, 10, CAPA_L)
+    piernas(s, CAPA_L, NEGRO)
+    return s
+
+
+SKINS = {"banquero": banquero, "tendero": tendero, "herrero": herrero, "mercader": mercader,
+         "bromista": bromista, "contrabandista": contrabandista}
 for nombre, fn in SKINS.items():
     fn().save(nombre)
 
@@ -258,13 +309,14 @@ def vista(img, atras=False, escala=8):
 
 
 E = 8
-hoja = Image.new("RGBA", (4 * (2 * 16 * E + 40) + 20, 32 * E + 70), (235, 228, 210, 255))
+hoja = Image.new("RGBA", (len(SKINS) * (2 * 16 * E + 40) + 20, 32 * E + 70), (235, 228, 210, 255))
 d = ImageDraw.Draw(hoja)
 try:
     fuente = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 22)
 except OSError:
     fuente = ImageFont.load_default()
-titulos = {"banquero": "Banquero", "tendero": "Tendero", "herrero": "Herrero", "mercader": "Mercader legendario"}
+titulos = {"banquero": "Banquero", "tendero": "Tendero", "herrero": "Herrero", "mercader": "Mercader legendario",
+           "bromista": "Bromas", "contrabandista": "Mercado negro"}
 x = 20
 for nombre in SKINS:
     img = Image.open(os.path.join(OUT, f"{nombre}.png")).convert("RGBA")

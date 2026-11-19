@@ -49,12 +49,13 @@ data class ConfigZonas(
 
     companion object {
         /**
-         * Plaza inca del spawn (datapack plaza_inca) y sala del portal en el Nether con su túnel.
+         * Plaza inca del spawn (datapack plaza_inca) y sala del portal en el Nether con su túnel
+         * y el mercado negro.
          * Vienen apagadas: las enciende /function plaza_inca:construir con /banco zonas activar.
          */
         fun porDefecto(): List<Zona> = listOf(
             Zona("plaza_spawn", "overworld", 76, -64, 44, 116, 320, 84, activa = false),
-            Zona("sala_portal_nether", "the_nether", 4, 76, -1, 56, 127, 11, activa = false),
+            Zona("sala_portal_nether", "the_nether", 4, 76, -17, 56, 127, 11, activa = false),
         )
     }
 }

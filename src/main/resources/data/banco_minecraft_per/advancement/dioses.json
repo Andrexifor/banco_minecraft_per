@@ -1,0 +1,19 @@
+{
+  "parent": "banco_minecraft_per:no_arriesga",
+  "display": {
+    "icon": {
+      "id": "minecraft:netherite_chestplate"
+    },
+    "title": "Los dioses te ven de más cerca",
+    "description": "Ponte el set completo de armadura legendaria. El mercado negro ahora te reconoce",
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "otorgado": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

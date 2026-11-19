@@ -40,6 +40,7 @@ object Herrero {
         val cobro = Operaciones.cobrar(j, precio, "HERRERO_REPARAR ${KitsReparacion.ruta(stack)}", impuesto(precio))
         if (!cobro.ok) return cobro
         stack.damageValue = 0
+        if (Encantamientos.esLegendario(stack)) Logros.otorgar(j, io.github.andrexifor.banco.nucleo.Logro.COMO_NUEVO)
         return Respuesta(true, "${stack.hoverName.string} reparado. ${cobro.mensaje}")
     }
 
@@ -142,6 +143,14 @@ object Herrero {
         val cobro = Operaciones.cobrar(j, l.precio, "LEGENDARIO ${l.id}", impuesto(l.precio))
         if (!cobro.ok) return cobro
         Inventarios.dar(j, stack)
+        Logros.otorgar(j, io.github.andrexifor.banco.nucleo.Logro.NO_ARRIESGA)
+        val datos = Logros.datos(j)
+        datos.legendarios().add(l.id)
+        Logros.marcarCambio()
+        val todos = BancoMinecraftPer.legendarios.legendarios.map { it.id }
+        if (todos.isNotEmpty() && datos.legendarios().containsAll(todos)) {
+            Logros.otorgar(j, io.github.andrexifor.banco.nucleo.Logro.COLECCIONISTA)
+        }
         server.playerList.broadcastSystemMessage(
             Component.literal("${j.name.string} compró ${l.nombre} al Mercader legendario").withStyle(ChatFormatting.GOLD),
             false,

@@ -1,0 +1,19 @@
+{
+  "parent": "banco_minecraft_per:no_arriesga",
+  "display": {
+    "icon": {
+      "id": "minecraft:anvil"
+    },
+    "title": "Como nuevo",
+    "description": "Repara un ítem legendario con el Herrero",
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "otorgado": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

@@ -18,6 +18,12 @@ enum class TipoNpc(val id: String, val nombre: String, val profesion: String) {
     TENDERO("tendero", "Tendero", "minecraft:farmer"),
     HERRERO("herrero", "Herrero", "minecraft:armorer"),
     MERCADER("mercader", "Mercader legendario", "minecraft:weaponsmith"),
+    BROMISTA("bromista", "Mercader de bromas", "minecraft:cleric"),
+    CONTRABANDISTA("contrabandista", "Mercado negro", "minecraft:nitwit"),
+    /** Puerta sellada del mercado negro (entidad de interacción): lleva adentro si está desbloqueado. */
+    PUERTA_NEGRA("puerta_negra", "Puerta del mercado negro", "minecraft:nitwit"),
+    /** Salida del mercado negro: lleva de vuelta a la sala del portal. */
+    SALIDA_NEGRA("salida_negra", "Salida del mercado negro", "minecraft:nitwit"),
     ;
 
     companion object {
@@ -82,6 +88,15 @@ object Npcs {
             TipoNpc.TENDERO -> GuiTienda.abrir(jugador)
             TipoNpc.HERRERO -> GuiHerrero.abrir(jugador)
             TipoNpc.MERCADER -> GuiMercader.abrir(jugador)
+            TipoNpc.BROMISTA -> GuiOfertas.abrir(jugador, Tienda.BROMAS)
+            TipoNpc.CONTRABANDISTA ->
+                if (MercadoNegro.desbloqueado(jugador)) {
+                    GuiOfertas.abrir(jugador, Tienda.CONTRABANDO)
+                } else {
+                    MercadoNegro.puertaEntrada(jugador) // muestra el mensaje de "no te reconoce"
+                }
+            TipoNpc.PUERTA_NEGRA -> MercadoNegro.puertaEntrada(jugador)
+            TipoNpc.SALIDA_NEGRA -> MercadoNegro.puertaSalida(jugador)
         }
     }
 

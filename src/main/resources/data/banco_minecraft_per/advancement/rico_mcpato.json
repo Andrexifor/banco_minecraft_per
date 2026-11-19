@@ -1,0 +1,19 @@
+{
+  "parent": "banco_minecraft_per:primer_millon",
+  "display": {
+    "icon": {
+      "id": "minecraft:gold_block"
+    },
+    "title": "Rico McPato estaría orgulloso",
+    "description": "Llega a S/ 65,000,000 en el banco",
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "otorgado": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

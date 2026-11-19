@@ -7,7 +7,10 @@ import io.github.andrexifor.banco.nucleo.Banco
 import io.github.andrexifor.banco.nucleo.Catalogo
 import io.github.andrexifor.banco.nucleo.CatalogoLegendarios
 import io.github.andrexifor.banco.nucleo.ConfigHerrero
+import io.github.andrexifor.banco.nucleo.CatalogoOfertas
+import io.github.andrexifor.banco.nucleo.ConfigMercadoNegro
 import io.github.andrexifor.banco.nucleo.ConfigZonas
+import io.github.andrexifor.banco.nucleo.RegistroJugadores
 import io.github.andrexifor.banco.nucleo.Configuracion
 import io.github.andrexifor.banco.nucleo.Cuenta
 import java.nio.charset.StandardCharsets
@@ -98,6 +101,49 @@ class Almacen(private val dirConfig: Path, private val dirDatos: Path) {
     fun guardarZonas(zonas: ConfigZonas) {
         Files.createDirectories(dirConfig)
         escribirAtomico(archivoZonas, gson.toJson(zonas))
+    }
+
+    // ---------- mercaderes especiales, mercado negro y logros ----------
+
+    fun cargarBromas(): CatalogoOfertas = cargarOfertas("bromas.json", CatalogoOfertas::bromasPorDefecto)
+
+    fun cargarContrabando(): CatalogoOfertas = cargarOfertas("contrabando.json", CatalogoOfertas::contrabandoPorDefecto)
+
+    private fun cargarOfertas(nombre: String, defecto: () -> CatalogoOfertas): CatalogoOfertas {
+        Files.createDirectories(dirConfig)
+        val archivo = dirConfig.resolve(nombre)
+        if (!Files.exists(archivo)) {
+            val d = defecto()
+            escribirAtomico(archivo, gson.toJson(d))
+            return d
+        }
+        val leido = gson.fromJson(Files.readString(archivo, StandardCharsets.UTF_8), CatalogoOfertas::class.java)
+        return (leido ?: defecto()).normalizado(defecto)
+    }
+
+    fun cargarMercadoNegro(): ConfigMercadoNegro {
+        Files.createDirectories(dirConfig)
+        val archivo = dirConfig.resolve("mercado_negro.json")
+        val leida = if (Files.exists(archivo)) {
+            (gson.fromJson(Files.readString(archivo, StandardCharsets.UTF_8), ConfigMercadoNegro::class.java) ?: ConfigMercadoNegro())
+        } else {
+            ConfigMercadoNegro()
+        }.normalizada()
+        escribirAtomico(archivo, gson.toJson(leida))
+        return leida
+    }
+
+    fun cargarJugadores(): RegistroJugadores {
+        Files.createDirectories(dirDatos)
+        val archivo = dirDatos.resolve("jugadores.json")
+        if (!Files.exists(archivo)) return RegistroJugadores()
+        return gson.fromJson(Files.readString(archivo, StandardCharsets.UTF_8), RegistroJugadores::class.java)
+            ?: RegistroJugadores()
+    }
+
+    fun guardarJugadores(r: RegistroJugadores) {
+        Files.createDirectories(dirDatos)
+        escribirAtomico(dirDatos.resolve("jugadores.json"), gson.toJson(r))
     }
 
     /** NPC del banco: UUID de la entidad -> tipo ("banquero", "tendero", "herrero", "mercader"). */

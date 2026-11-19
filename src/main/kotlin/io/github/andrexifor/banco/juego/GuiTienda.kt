@@ -159,6 +159,10 @@ object GuiTienda {
         val (neto, impuesto) = Precios.venta(prod, aVender, config.impuestoVentasPorcentaje)
         val r = Operaciones.abonar(j, neto, "VENTA ${prod.item} x${aVender * prod.lote}", impuesto)
         if (!r.ok) return r
+        Logros.sumar(
+            j, io.github.andrexifor.banco.nucleo.Contador.VENDIDOS, (aVender * prod.lote).toLong(),
+            io.github.andrexifor.banco.nucleo.Metas.VENDIDOS, io.github.andrexifor.banco.nucleo.Logro.MERCACHIFLE,
+        )
         return Respuesta(true, "Vendiste ${aVender * prod.lote} × ${ItemStack(item).hoverName.string} por ${Formato.soles(neto)}. Saldo: ${Formato.soles(Operaciones.saldo(j))}")
     }
 

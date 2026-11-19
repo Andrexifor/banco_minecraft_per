@@ -1,0 +1,19 @@
+{
+  "parent": "banco_minecraft_per:raiz",
+  "display": {
+    "icon": {
+      "id": "minecraft:writable_book"
+    },
+    "title": "Contribuyente ejemplar",
+    "description": "Paga S/ 100,000 en impuestos",
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "otorgado": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

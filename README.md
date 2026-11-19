@@ -119,6 +119,55 @@ Luego `/banco npc asignar banquero` + clic al maniquí, o sin clic (sirve en fun
 `/banco npc fijar banquero @e[type=minecraft:mannequin,tag=mi_banquero,limit=1]`. Quien no acepte el resource pack
 los ve con textura faltante.
 
+## Mercader de bromas y mercado negro
+
+Dos NPC más (tipos `bromista` y `contrabandista`), con skins propias en el resource pack.
+Sus catálogos están en `config/banco_minecraft_per/bromas.json` y `contrabando.json`.
+Cada artículo es un ítem en **formato de /give**, con componentes, así que se puede editar a mano:
+
+```json
+{ "id": "vara_verdad", "nombre": "Vara de la Verdad",
+  "item": "minecraft:stick[enchantments={\"minecraft:knockback\":5},custom_data={banco_minecraft_per:{broma:\"vara_verdad\"}}]",
+  "cantidad": 1, "precio": 2500000, "descripcion": "...", "anunciar": true }
+```
+
+Si un ítem está mal escrito, no aparece en el menú (y sale un aviso en el log).
+
+- **Mercader de bromas:** Vara de la Verdad (Empuje V y 2 % de rayo al golpear), huevo de
+  **Puyu del Inti** (ghast feliz con el doble de velocidad de vuelo), papa legendaria y corona del rey del barrio.
+- **Mercado negro (Nether):** se desbloquea **para siempre** la primera vez que el jugador lleva puesto
+  el set completo de armadura legendaria (logro "Los dioses te ven de más cerca"). La puerta sellada
+  (`puerta_negra`) lleva adentro y la salida (`salida_negra`) devuelve a la sala del portal; los destinos
+  están en `config/banco_minecraft_per/mercado_negro.json`. Vende contrabando: élitros, tótem, manzana de
+  oro encantada, libro de Reparación, plantilla de netherita y estrella del Nether.
+
+## Logros del servidor
+
+19 logros propios en una pestaña "Banco Minecraft PER" (aviso en pantalla y en el chat, como los de
+Minecraft; el cliente no instala nada). Están en `data/banco_minecraft_per/advancement/` dentro del jar
+y los da el mod con `/advancement grant`. Lo que el mod recuerda de cada jugador (logros, contadores,
+legendarios comprados, acceso al mercado negro) va en `banco_minecraft_per/jugadores.json`.
+
+| Logro | Condición |
+|---|---|
+| Mi primer millón / Rico McPato estaría orgulloso / La avaricia rompe el saco | S/ 1M / 65M / 666,666,666 en el banco |
+| Sencillo, causa | Cambiar a sencillo con el Banquero |
+| Pagador puntual | Primer `/pagar` |
+| El que no arriesga no gana | Primer legendario |
+| Fiado no hay | Intentar comprar sin que alcance |
+| Mercachifle | Vender 1,000 ítems a la tienda |
+| Contribuyente ejemplar | S/ 100,000 en impuestos |
+| Bancarrota | S/ 0 después de haber tenido más de S/ 100,000 |
+| Ni el Tahuantinsuyo tenía tanto | Las 36 casillas llenas de pilas de 64 bonos de S/ 10,000 |
+| Los dioses te ven de más cerca | Set completo de armadura legendaria puesto |
+| Como nuevo | Reparar un legendario con el Herrero |
+| Coleccionista del Inca | Comprar todos los legendarios |
+| La verdad duele | Rayo de la Vara de la Verdad |
+| Cliente VIP del mercado negro | 5 compras en el mercado negro |
+| Plata como cancha | S/ 1,000,000 gastados en bromas |
+| Volando bajito | Montar un Puyu del Inti |
+| Peaje del Inti | Llegar a la sala del portal bajo la roca madre |
+
 ## Zonas protegidas
 
 Dentro de una zona protegida **nadie en supervivencia** puede romper o poner bloques, abrir

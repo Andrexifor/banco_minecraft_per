@@ -1,0 +1,19 @@
+{
+  "parent": "banco_minecraft_per:rico_mcpato",
+  "display": {
+    "icon": {
+      "id": "minecraft:raw_gold_block"
+    },
+    "title": "La avaricia rompe el saco",
+    "description": "Llega a S/ 666,666,666 en el banco",
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "otorgado": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

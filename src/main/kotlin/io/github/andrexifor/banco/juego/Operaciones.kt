@@ -2,7 +2,10 @@ package io.github.andrexifor.banco.juego
 
 import io.github.andrexifor.banco.BancoMinecraftPer
 import io.github.andrexifor.banco.nucleo.Desglose
+import io.github.andrexifor.banco.nucleo.Contador
 import io.github.andrexifor.banco.nucleo.Formato
+import io.github.andrexifor.banco.nucleo.Logro
+import io.github.andrexifor.banco.nucleo.Metas
 import io.github.andrexifor.banco.nucleo.Resultado
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.item.ItemStack
@@ -63,6 +66,8 @@ object Operaciones {
         if (r !is Resultado.Ok) return Respuesta(false, mensaje(r))
         BancoMinecraftPer.guardar()
         almacen.registrar("PAGO", origen.name.string, destino.name.string, monto, r.impuesto)
+        Logros.otorgar(origen, Logro.PAGADOR_PUNTUAL)
+        Logros.sumar(origen, Contador.IMPUESTOS, r.impuesto, Metas.IMPUESTOS, Logro.CONTRIBUYENTE)
         val extra = if (r.impuesto > 0) " (+${Formato.soles(r.impuesto)} de impuesto)" else ""
         return Respuesta(true, "Pagaste ${Formato.soles(monto)} a ${destino.name.string}$extra. Saldo: ${Formato.soles(r.saldoFinal)}")
     }
@@ -77,6 +82,7 @@ object Operaciones {
         if (saldo < total) {
             val efectivo = Efectivo.valorEnInventario(j)
             if (saldo + efectivo < total) {
+                Logros.otorgar(j, Logro.FIADO_NO_HAY)
                 return Respuesta(
                     false,
                     "No te alcanza: cuesta ${Formato.soles(total)} y tienes ${Formato.soles(saldo)} en el banco" +
@@ -90,6 +96,7 @@ object Operaciones {
         if (r !is Resultado.Ok) return Respuesta(false, mensaje(r))
         BancoMinecraftPer.guardar()
         almacen.registrar("COBRO", j.name.string, "-", monto, impuesto, concepto)
+        Logros.sumar(j, Contador.IMPUESTOS, impuesto, Metas.IMPUESTOS, Logro.CONTRIBUYENTE)
         return Respuesta(true, "Pagaste ${Formato.soles(total)}. Saldo: ${Formato.soles(r.saldoFinal)}")
     }
 
@@ -99,6 +106,7 @@ object Operaciones {
         if (r !is Resultado.Ok) return Respuesta(false, mensaje(r))
         BancoMinecraftPer.guardar()
         almacen.registrar("ABONO", "-", j.name.string, monto, impuesto, concepto)
+        Logros.sumar(j, Contador.IMPUESTOS, impuesto, Metas.IMPUESTOS, Logro.CONTRIBUYENTE)
         return Respuesta(true, "Recibiste ${Formato.soles(monto)}. Saldo: ${Formato.soles(r.saldoFinal)}")
     }
 
@@ -126,6 +134,7 @@ object Operaciones {
         stack.shrink(1)
         Efectivo.entregar(j, cambio)
         almacen.registrar("CAMBIO", j.name.string, "-", d.valor, detalle = d.modelo)
+        Logros.otorgar(j, Logro.SENCILLO_CAUSA)
         val detalle = cambio.entries.joinToString(" + ") { (den, c) -> "${c}×${den.nombreCorto}" }
         return Respuesta(true, "Cambiaste ${d.nombreCorto} por $detalle")
     }
