@@ -1,6 +1,5 @@
 package io.github.andrexifor.banco.juego
 
-import eu.pb4.sgui.api.gui.SimpleGui
 import io.github.andrexifor.banco.BancoMinecraftPer
 import io.github.andrexifor.banco.juego.GuiUtil.texto
 import io.github.andrexifor.banco.nucleo.CatalogoOfertas
@@ -17,12 +16,13 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.SimpleContainer
+import net.minecraft.world.SimpleMenuProvider
+import net.minecraft.world.entity.ContainerUser
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.animal.equine.Mule
 import net.minecraft.world.entity.animal.equine.ZombieHorse
 import net.minecraft.world.entity.item.ItemEntity
-import net.minecraft.world.inventory.MenuType
-import net.minecraft.world.inventory.Slot
+import net.minecraft.world.inventory.ChestMenu
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.block.Blocks
 import kotlin.random.Random
@@ -104,19 +104,19 @@ object Monturas {
 
     // ---------- alforja de la mula ----------
 
+    /** Abre la alforja de la mula como un cofre doble vanilla; al cerrarlo se guarda en la mula. */
     private fun abrirAlforja(j: ServerPlayer, mula: Entity) {
         val guardado = mula.getAttached(ALFORJA).orEmpty()
-        val contenedor = SimpleContainer(CASILLAS_ALFORJA)
-        guardado.take(CASILLAS_ALFORJA).forEachIndexed { i, s -> contenedor.setItem(i, s.copy()) }
-        val gui = object : SimpleGui(MenuType.GENERIC_9x6, j, false) {
-            override fun onPlayerClose(success: Boolean) {
-                val lista = (0 until CASILLAS_ALFORJA).map { contenedor.getItem(it).copy() }
+        val contenedor = object : SimpleContainer(CASILLAS_ALFORJA) {
+            override fun stopOpen(user: ContainerUser) {
+                super.stopOpen(user)
+                val lista = (0 until CASILLAS_ALFORJA).map { getItem(it).copy() }
                 if (lista.all { it.isEmpty }) mula.removeAttached(ALFORJA) else mula.setAttached(ALFORJA, lista)
             }
         }
-        gui.setTitle(texto("Alforja de ${mula.customName?.string ?: "la mula"}", ChatFormatting.GOLD))
-        for (i in 0 until CASILLAS_ALFORJA) gui.setRemoteSlot(i, Slot(contenedor, i, 0, 0))
-        gui.open()
+        guardado.take(CASILLAS_ALFORJA).forEachIndexed { i, s -> contenedor.setItem(i, s.copy()) }
+        val titulo = texto("Alforja de ${mula.customName?.string ?: "la mula"}", ChatFormatting.GOLD)
+        j.openMenu(SimpleMenuProvider({ id, inventario, _ -> ChestMenu.sixRows(id, inventario, contenedor) }, titulo))
         BancoMinecraftPer.LOGGER.debug("Alforja abierta por {}", j.name.string)
     }
 }
