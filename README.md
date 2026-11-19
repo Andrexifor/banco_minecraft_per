@@ -115,7 +115,8 @@ Se usan con maniquíes vanilla, que cualquier cliente ve sin mods:
 summon minecraft:mannequin ~ ~ ~ {profile:{texture:"banco_minecraft_per:entity/npc/banquero",model:"wide"}}
 ```
 
-Luego `/banco npc asignar banquero` + clic al maniquí. Quien no acepte el resource pack
+Luego `/banco npc asignar banquero` + clic al maniquí, o sin clic (sirve en funciones):
+`/banco npc fijar banquero @e[type=minecraft:mannequin,tag=mi_banquero,limit=1]`. Quien no acepte el resource pack
 los ve con textura faltante.
 
 ## Zonas protegidas
@@ -137,6 +138,10 @@ Se configuran en `config/banco_minecraft_per/zonas.json` (las esquinas, en cualq
   ]
 }
 ```
+
+Además, los creepers, la TNT y las bolas de fuego que entran a una zona (o a 4 bloques de ella)
+desaparecen antes de explotar, y si igual hay una explosión, no rompe bloques de la zona
+(en el log sale "Explosión en zona protegida").
 
 Por defecto protege la plaza inca del spawn y la sala del portal en el Nether (con su túnel).
 `/banco zonas` lista las zonas y te dice si estás dentro de una; `/banco recargar` aplica cambios.

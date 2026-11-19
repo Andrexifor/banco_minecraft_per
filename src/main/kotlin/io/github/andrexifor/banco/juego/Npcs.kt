@@ -85,6 +85,18 @@ object Npcs {
         }
     }
 
+    /** Registra entidades como NPC sin clic (lo usa el datapack de la plaza). Devuelve cuántas. */
+    fun fijar(entidades: Collection<Entity>, tipo: TipoNpc): Int {
+        var n = 0
+        for (e in entidades) {
+            if (e is Player) continue
+            registro[e.uuid] = tipo.id
+            n++
+        }
+        if (n > 0) BancoMinecraftPer.almacen.guardarNpcs(registro)
+        return n
+    }
+
     /** Crea un aldeano en la posición del jugador y deja pendiente el clic para registrarlo. */
     fun crear(jugador: ServerPlayer, tipo: TipoNpc) {
         val servidor = (jugador.level() as ServerLevel).server

@@ -28,6 +28,9 @@ public abstract class ExplosionMixin {
         for (BlockPos pos : posiciones) {
             if (!Proteccion.protegido(self.level(), pos)) filtradas.add(pos);
         }
-        if (filtradas.size() != posiciones.size()) cir.setReturnValue(filtradas);
+        if (filtradas.size() != posiciones.size()) {
+            Proteccion.explosionFrenada(posiciones.size() - filtradas.size());
+            cir.setReturnValue(filtradas);
+        }
     }
 }

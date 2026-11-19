@@ -94,10 +94,17 @@ object Comandos {
                     ),
                 )
                 .then(
-                    literal("npc").requires(admin)
+                    literal("npc").requires(Permissions.require("$PERM.admin", 2))
                         .then(literal("crear").then(argumentoTipoNpc().executes { crearNpc(it, crearAldeano = true) }))
                         .then(literal("asignar").then(argumentoTipoNpc().executes { crearNpc(it, crearAldeano = false) }))
-                        .then(literal("quitar").executes { quitarNpc(it) }),
+                        .then(literal("quitar").executes { quitarNpc(it) })
+                        .then(
+                            literal("fijar").then(
+                                argumentoTipoNpc().then(
+                                    argument("entidades", EntityArgument.entities()).executes { fijarNpc(it) },
+                                ),
+                            ),
+                        ),
                 )
                 .then(literal("zonas").requires(admin).executes { zonas(it) })
                 .then(literal("recargar").requires(admin).executes { recargar(it) }),
@@ -227,6 +234,15 @@ object Comandos {
             avisarAdmins = true,
         )
         return 1
+    }
+
+    private fun fijarNpc(ctx: CommandContext<CommandSourceStack>): Int {
+        val tipo = TipoNpc.porId(StringArgumentType.getString(ctx, "tipo"))
+            ?: return error(ctx, "Tipo desconocido")
+        val n = Npcs.fijar(EntityArgument.getEntities(ctx, "entidades"), tipo)
+        if (n == 0) return error(ctx, "No se encontró ninguna entidad para ${tipo.nombre}")
+        ok(ctx, "${tipo.nombre}: $n NPC registrado(s)")
+        return n
     }
 
     private fun zonas(ctx: CommandContext<CommandSourceStack>): Int {
