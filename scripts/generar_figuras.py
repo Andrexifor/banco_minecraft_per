@@ -30,6 +30,10 @@ def uv(x0, y0, x1, y1):
     return [round(x0 / 4, 3), round(y0 / 4, 3), round(x1 / 4, 3), round(y1 / 4, 3)]
 
 
+TELA = [5.0, 10.0, 6.0, 11.0]      # trozo liso de la tela del unku (px 20..24, 40..44)
+PIEL = [5.25, 10.75, 6.25, 11.75]  # mejilla de la máscara: el "material" del ser
+
+
 def ancho_filas(img, y0, y1):
     """Mitad del ancho opaco (en píxeles desde el centro 31.5) entre las filas y0..y1."""
     a = img.getchannel("A")
@@ -45,47 +49,66 @@ def caja(desde, hasta, caras):
     return {"from": [round(v, 3) for v in desde], "to": [round(v, 3) for v in hasta], "faces": caras}
 
 
-def unku(img, hasta=64):
-    """Unku en franjas hasta la fila [hasta] de la textura (64 = de pie, entero; 44 = sentado)."""
+def ancho_min(img, y0, y1):
+    """Mitad del ancho opaco más angosto entre las filas y0..y1 (así la franja no tiene huecos)."""
+    a = img.getchannel("A")
+    media = None
+    for y in range(y0, y1):
+        xs = [x for x in range(64) if a.getpixel((x, y)) > 0]
+        if not xs:
+            return 0
+        m = min(31.5 - xs[0] + 0.5, xs[-1] - 31.5 + 0.5)
+        media = m if media is None else min(media, m)
+    return media or 0
+
+
+def unku(img, hasta=56):
+    """Unku sólido en franjas de 2 filas hasta la fila [hasta] (56 = de pie, sin los flecos;
+    44 = sentado). Por delante y por detrás la tela; costados, hombros y bajo, tela lisa."""
     elementos = []
-    tramos = [t for t in [(0, 6), (6, 12), (12, 20), (20, 28), (28, 36), (36, 44), (44, 52), (52, 64)] if t[1] <= hasta]
-    for i, (y0, y1) in enumerate(tramos):
-        hw = ancho_filas(img, y0, y1)
+    for y0 in range(0, hasta, 2):
+        y1 = y0 + 2
+        hw = int(ancho_min(img, y0, y1))
         if hw <= 0:
             continue
-        x0p, x1p = 31.5 - hw + 0.5, 31.5 + hw + 0.5
+        x0p, x1p = 32 - hw, 32 + hw
         top, bot = UNKU_TOP - y0 * K_UNKU, UNKU_TOP - y1 * K_UNKU
         x0, x1 = 8 - hw * K_UNKU, 8 + hw * K_UNKU
-        borde_d = int(x1p) - 1
-        borde_i = int(x0p)
+        lisa = {"uv": TELA, "texture": "#unku"}
         caras = {
             "south": {"uv": uv(x0p, y0, x1p, y1), "texture": "#unku"},
             "north": {"uv": uv(x1p, y0, x0p, y1), "texture": "#unku"},
-            "east": {"uv": uv(borde_d, y0, borde_d + 1, y1), "texture": "#unku"},
-            "west": {"uv": uv(borde_i, y0, borde_i + 1, y1), "texture": "#unku"},
-            "up": {"uv": uv(x0p, 14, x1p, 15), "texture": "#unku"},
+            "east": lisa, "west": lisa, "up": lisa, "down": lisa,
         }
         elementos.append(caja([x0, bot, 5], [x1, top, Z_FRENTE], caras))
+    if hasta >= 56:
+        # flecos del ruedo: una placa delgada solo por delante y por detrás
+        hw = int(ancho_min(img, 56, 58)) or 1
+        top, bot = UNKU_TOP - 56 * K_UNKU, UNKU_TOP - 64 * K_UNKU
+        elementos.append(caja([8 - hw * K_UNKU, bot, 5.5], [8 + hw * K_UNKU, top, Z_FRENTE - 0.5], {
+            "south": {"uv": uv(32 - hw, 56, 32 + hw, 64), "texture": "#unku"},
+            "north": {"uv": uv(32 + hw, 56, 32 - hw, 64), "texture": "#unku"},
+        }))
     return elementos
 
 
-def capa(px0, py0, px1, py1, z0, z1):
+def capa(px0, py0, px1, py1, z0, z1, solido=False):
     """Recorte de la máscara (píxeles) convertido en una placa entre z0 y z1."""
     x0, x1 = 8 + (px0 - 32) * K_MASC, 8 + (px1 - 32) * K_MASC
     top, bot = MASC_TOP - py0 * K_MASC, MASC_TOP - py1 * K_MASC
     caras = {
         "south": {"uv": uv(px0, py0, px1, py1), "texture": "#mascara"},
         "north": {"uv": uv(px1, py0, px0, py1), "texture": "#mascara"},
-        "east": {"uv": uv(px1 - 1, py0, px1, py1), "texture": "#mascara"},
-        "west": {"uv": uv(px0, py0, px0 + 1, py1), "texture": "#mascara"},
-        "up": {"uv": uv(px0, py0, px1, py0 + 1), "texture": "#mascara"},
-        "down": {"uv": uv(px0, py1 - 1, px1, py1), "texture": "#mascara"},
+        # piezas chicas y llenas: costados del material del ser; las grandes (con forma recortada)
+        # toman el borde de la propia textura para no dibujar un marco rectangular
+        "east": {"uv": PIEL if solido else uv(px1 - 1, py0, px1, py1), "texture": "#mascara"},
+        "west": {"uv": PIEL if solido else uv(px0, py0, px0 + 1, py1), "texture": "#mascara"},
+        "up": {"uv": PIEL if solido else uv(px0, py0, px1, py0 + 1), "texture": "#mascara"},
+        "down": {"uv": PIEL if solido else uv(px0, py1 - 1, px1, py1), "texture": "#mascara"},
     }
     return caja([x0, bot, z0], [x1, top, z1], caras)
 
 
-TELA = uv(20, 40, 24, 44)          # trozo de la tela del unku
-PIEL = uv(21, 43, 25, 47)          # mejilla de la máscara: el "material" del ser
 
 
 def bloque(desde, hasta, cara, tex):
@@ -123,7 +146,7 @@ def sentado_en_tiana():
     de flecos sobre las rodillas, piernas, pies y el asiento."""
     oro = [0, 0, 16, 16]
     regazo = caja([1.5, 0, 5], [14.5, 3.6, 15.5], {
-        "south": {"uv": uv(10, 52, 54, 64), "texture": "#unku"},
+        "south": {"uv": uv(10, 44, 54, 56), "texture": "#unku"},
         "up": {"uv": uv(14, 36, 50, 50), "texture": "#unku"},
         "east": {"uv": uv(14, 44, 40, 52), "texture": "#unku"},
         "west": {"uv": uv(14, 44, 40, 52), "texture": "#unku"},
@@ -141,8 +164,8 @@ def sentado_en_tiana():
 
 
 # punto de agarre de cada arma en su textura de 64 px (dónde la sostiene la mano)
-AGARRE = {"banquero": (22, 45), "tendero": (34, 26), "herrero": (17, 48), "mercader": (32, 38)}
-K_ARMA = 0.3125      # 64 px -> 20 unidades
+AGARRE = {"banquero": (22, 45), "tendero": (42, 12), "herrero": (17, 48), "mercader": (32, 38)}
+K_ARMA = 0.42        # 64 px -> ~27 unidades (las armas se ven del tamaño de un bastón)
 # brazo derecho en el cuerpo: hombro, antebrazo hacia adelante y mano
 HOMBRO = (17.75, 18.5, 8.25)
 BRAZO = [([16.25, 10, 6.5], [19.25, 19, 10]), ([16, 5.5, 7], [19, 10, 11.5])]
@@ -176,7 +199,7 @@ def mascara():
         capa(5, 26, 19, 40, z + 1, z + 2.5),          # orejera izquierda
         capa(45, 26, 59, 40, z + 1, z + 2.5),         # orejera derecha
         capa(20, 25, 44, 28, z + 2, z + 2.5),         # cejas
-        capa(30, 28, 34, 40, z + 2, z + 3),           # nariz
+        capa(30, 28, 34, 40, z + 2, z + 3, True),     # nariz
         capa(24, 40, 40, 48, z + 2, z + 2.75),        # nariguera
         capa(29, 19, 35, 24, z + 2, z + 2.5),         # joya de la frente
     ]
