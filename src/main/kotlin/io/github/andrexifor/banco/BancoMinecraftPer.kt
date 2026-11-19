@@ -2,6 +2,7 @@ package io.github.andrexifor.banco
 
 import io.github.andrexifor.banco.juego.Almacen
 import io.github.andrexifor.banco.juego.Comandos
+import io.github.andrexifor.banco.juego.ImanBotin
 import io.github.andrexifor.banco.juego.KitsReparacion
 import io.github.andrexifor.banco.juego.Npcs
 import io.github.andrexifor.banco.nucleo.Banco
@@ -51,6 +52,7 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         Npcs.cargar()
         Npcs.registrarEventos()
         KitsReparacion.registrarEventos()
+        ImanBotin.registrarEventos()
         LOGGER.info(
             "Banco Minecraft PER listo: {} cuentas, {} productos en la tienda, {} legendarios",
             banco.todas().size,

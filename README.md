@@ -58,7 +58,9 @@ Los NPC son aldeanos sin IA, invulnerables y persistentes. Clic derecho abre su 
   - **Kits de reparación** (armadura, armas, herramientas; 1 o 3 usos).
 - **Mercader legendario:** ítems con encantamientos por encima del máximo vanilla
   (Afilado VI, Poder VI, Protección V…). Pide confirmación antes de cobrar y anuncia
-  la compra en el chat.
+  la compra en el chat. El **Tridente de Pachacámac** tiene **imán de botín**: lo que suelta
+  el enemigo que mata (cuerpo a cuerpo o lanzado) va directo a tu inventario
+  (`"iman": true` en `legendarios.json`; se puede activar en cualquier legendario).
 
 ## Kits de reparación
 

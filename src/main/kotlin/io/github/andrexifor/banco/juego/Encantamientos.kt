@@ -25,12 +25,21 @@ import net.minecraft.world.item.enchantment.ItemEnchantments
 object Encantamientos {
     private const val CLAVE = BancoMinecraftPer.MOD_ID
 
-    private fun marcaLegendario(): CompoundTag {
+    private fun marca(clave: String): CompoundTag {
         val interno = CompoundTag()
-        interno.putBoolean("legendario", true)
+        interno.putBoolean(clave, true)
         val raiz = CompoundTag()
         raiz.put(CLAVE, interno)
         return raiz
+    }
+
+    private fun marcaLegendario(): CompoundTag = marca("legendario")
+
+    /** ¿Tiene el poder "imán de botín"? */
+    fun esIman(stack: ItemStack): Boolean {
+        if (stack.isEmpty) return false
+        val datos = stack.get(DataComponents.CUSTOM_DATA) ?: return false
+        return datos.matchedBy(marca("iman"))
     }
 
     fun esLegendario(stack: ItemStack): Boolean {
@@ -80,13 +89,22 @@ object Encantamientos {
             mutable.set(h, nivel)
         }
         stack.set(DataComponents.ENCHANTMENTS, mutable.toImmutable())
-        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(marcaLegendario()))
+        val interno = CompoundTag()
+        interno.putBoolean("legendario", true)
+        if (l.iman) interno.putBoolean("iman", true)
+        val datos = CompoundTag()
+        datos.put(CLAVE, interno)
+        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(datos))
         stack.set(DataComponents.CUSTOM_NAME, Component.literal(l.nombre).withStyle(ChatFormatting.GOLD).withStyle { it.withItalic(false) })
         val lore = mutableListOf<Component>(
             Component.literal("Legendario").withStyle(ChatFormatting.LIGHT_PURPLE).withStyle { it.withItalic(false) },
         )
         if (l.descripcion.isNotBlank()) {
             lore += Component.literal(l.descripcion).withStyle(ChatFormatting.GRAY).withStyle { it.withItalic(false) }
+        }
+        if (l.iman) {
+            lore += Component.literal("Imán de botín: lo que suelta el enemigo va a tu inventario")
+                .withStyle(ChatFormatting.AQUA).withStyle { it.withItalic(false) }
         }
         lore += Component.literal("No admite Reparación: llévalo al Herrero").withStyle(ChatFormatting.DARK_GRAY).withStyle { it.withItalic(false) }
         stack.set(DataComponents.LORE, ItemLore(lore))

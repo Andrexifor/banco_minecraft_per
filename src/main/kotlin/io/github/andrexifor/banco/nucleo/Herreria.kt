@@ -12,6 +12,8 @@ data class Legendario(
     var encantamientos: MutableMap<String, Int> = linkedMapOf(),
     var precio: Long = 0,
     var descripcion: String = "",
+    /** Imán de botín: lo que suelta el enemigo que mata este ítem va directo al inventario. */
+    var iman: Boolean = false,
 )
 
 data class CatalogoLegendarios(var legendarios: MutableList<Legendario> = mutableListOf()) {
@@ -36,8 +38,8 @@ data class CatalogoLegendarios(var legendarios: MutableList<Legendario> = mutabl
                         "efficiency" to 6, "fortune" to 4, "unbreaking" to 5),
                     l("arco", "Arco del Cóndor", "bow", 800_000, "Poder VI e Infinidad",
                         "power" to 6, "punch" to 2, "flame" to 1, "infinity" to 1, "unbreaking" to 5),
-                    l("tridente", "Tridente de Pachacámac", "trident", 700_000, "Empalamiento VI",
-                        "impaling" to 6, "loyalty" to 3, "channeling" to 1, "unbreaking" to 5),
+                    l("tridente", "Tridente de Pachacámac", "trident", 700_000, "Empalamiento VI e imán de botín",
+                        "impaling" to 6, "loyalty" to 3, "channeling" to 1, "unbreaking" to 5).copy(iman = true),
                     l("casco", "Casco del Sol", "netherite_helmet", 600_000, "Protección V",
                         "protection" to 5, "unbreaking" to 5, "respiration" to 3, "aqua_affinity" to 1),
                     l("pechera", "Pechera del Sol", "netherite_chestplate", 600_000, "Protección V",
