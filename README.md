@@ -161,7 +161,11 @@ Si un ítem está mal escrito, no aparece en el menú (y sale un aviso en el log
   Estrellas, Tumi del Cosmos); a más de 12 bloques aparece su verdadera forma, un orbe con ojo gigante
   sobre el techo. **Cada jugador lo ve según su propia distancia**: el mod le envía a cada uno la escala
   de cada display (0 para ocultarlo). El datapack pone los displays con etiquetas `ser_cerca` / `ser_lejos`
-  y una `interaction` invisible registrada como NPC. Texturas: `scripts/generar_seres.py`,
+  y una `interaction` invisible registrada como NPC. De 5 a 12 bloques cada ser **trabaja** (el herrero
+  martilla en su yunque, el oráculo afila su tumi, el guardián remueve el oro del crisol y el sembrador
+  descansa sentado en su tiana), con chispas y sonidos solo para ese jugador; a menos de 5 bloques deja
+  de trabajar y **se gira a mirarte**. El brazo con el arma es una pieza aparte (`brazo_<ser>`) que el mod
+  anima por jugador girándola desde el hombro. Texturas: `scripts/generar_seres.py`,
   `generar_mascaras.py` y `generar_vestimenta.py`.
 - **Reliquias del Oráculo del Cosmos** (`Reliquias.kt`): los legendarios por defecto tienen aspecto propio
   (`item_model` `reliquia_<id>`; la Armadura del Sol usa la capa `armadura_sol` y se ve puesta). Los ya
