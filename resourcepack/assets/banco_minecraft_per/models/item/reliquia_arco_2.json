@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/bow",
+  "textures": {
+    "layer0": "banco_minecraft_per:item/reliquia_arco_2"
+  }
+}

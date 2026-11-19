@@ -9,6 +9,8 @@ import io.github.andrexifor.banco.juego.Monturas
 import io.github.andrexifor.banco.juego.KitsReparacion
 import io.github.andrexifor.banco.juego.Npcs
 import io.github.andrexifor.banco.juego.Proteccion
+import io.github.andrexifor.banco.juego.Reliquias
+import io.github.andrexifor.banco.juego.SeresCosmicos
 import io.github.andrexifor.banco.nucleo.Banco
 import io.github.andrexifor.banco.nucleo.Catalogo
 import io.github.andrexifor.banco.nucleo.CatalogoLegendarios
@@ -80,6 +82,8 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         Bromas.registrarEventos()
         Logros.registrarEventos()
         Monturas.registrarEventos()
+        SeresCosmicos.registrarEventos()
+        Reliquias.registrarEventos()
         LOGGER.info(
             "Banco Minecraft PER listo: {} cuentas, {} productos en la tienda, {} legendarios, {} zonas protegidas",
             banco.todas().size,

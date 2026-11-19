@@ -156,9 +156,16 @@ Si un ítem está mal escrito, no aparece en el menú (y sale un aviso en el log
   se ve distinto. Las monturas usan el mismo truco con `slot:"saddle"` (capas `mule_saddle`,
   `zombie_horse_saddle`, `skeleton_horse_saddle`). Las texturas salen de `scripts/generar_equipo.py` y
   `scripts/generar_monturas.py`, que usan las texturas vanilla solo como plantilla de forma.
-- **Seres cósmicos de los puestos:** `scripts/generar_seres.py` dibuja los cuatro orbes con ojo
-  (`ser_banquero`, `ser_tendero`, `ser_herrero`, `ser_mercader`); el datapack de la plaza los pone con
-  `item_display` flotantes y una entidad `interaction` invisible registrada como NPC.
+- **Seres cósmicos de los puestos** (`SeresCosmicos.kt`): de cerca son una máscara ceremonial sobre un
+  unku vacío que flota, con su arma (Báculo del Oro Estelar, Chaquitaclla del Vacío, Champi de las
+  Estrellas, Tumi del Cosmos); a más de 12 bloques aparece su verdadera forma, un orbe con ojo gigante
+  sobre el techo. **Cada jugador lo ve según su propia distancia**: el mod le envía a cada uno la escala
+  de cada display (0 para ocultarlo). El datapack pone los displays con etiquetas `ser_cerca` / `ser_lejos`
+  y una `interaction` invisible registrada como NPC. Texturas: `scripts/generar_seres.py`,
+  `generar_mascaras.py` y `generar_vestimenta.py`.
+- **Reliquias del Oráculo del Cosmos** (`Reliquias.kt`): los legendarios por defecto tienen aspecto propio
+  (`item_model` `reliquia_<id>`; la Armadura del Sol usa la capa `armadura_sol` y se ve puesta). Los ya
+  comprados se actualizan solos al estar en el inventario. Texturas: `scripts/generar_reliquias.py`.
 - **Inti de la plaza:** `scripts/generar_inti.py` dibuja el sol inca con rostro (`item_model`
   `banco_minecraft_per:inti_sol`); el datapack de la plaza lo muestra gigante con un `item_display`.
 - **Mercado negro (Nether):** se desbloquea **para siempre** la primera vez que el jugador lleva puesto

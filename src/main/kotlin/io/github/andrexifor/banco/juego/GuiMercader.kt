@@ -16,7 +16,7 @@ object GuiMercader {
     fun abrir(j: ServerPlayer) {
         val server = j.level().server ?: return
         val gui = SimpleGui(MenuType.GENERIC_9x3, j, false)
-        gui.setTitle(texto("Mercader legendario", ChatFormatting.DARK_PURPLE))
+        gui.setTitle(texto("Oráculo del Cosmos", ChatFormatting.DARK_PURPLE))
         for (i in 0 until gui.size) gui.setSlot(i, GuiUtil.relleno())
         gui.setSlot(
             4,

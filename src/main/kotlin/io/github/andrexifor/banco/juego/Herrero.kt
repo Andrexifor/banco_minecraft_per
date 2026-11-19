@@ -152,7 +152,7 @@ object Herrero {
             Logros.otorgar(j, io.github.andrexifor.banco.nucleo.Logro.COLECCIONISTA)
         }
         server.playerList.broadcastSystemMessage(
-            Component.literal("${j.name.string} compró ${l.nombre} al Mercader legendario").withStyle(ChatFormatting.GOLD),
+            Component.literal("${j.name.string} compró ${l.nombre} al Oráculo del Cosmos").withStyle(ChatFormatting.GOLD),
             false,
         )
         return Respuesta(true, "¡${l.nombre} es tuyo! ${cobro.mensaje}")

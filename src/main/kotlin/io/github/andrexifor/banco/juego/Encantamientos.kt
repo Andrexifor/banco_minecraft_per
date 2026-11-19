@@ -109,6 +109,7 @@ object Encantamientos {
         }
         lore += Component.literal("No admite Reparación: llévalo al Herrero").withStyle(ChatFormatting.DARK_GRAY).withStyle { it.withItalic(false) }
         stack.set(DataComponents.LORE, ItemLore(lore))
+        Reliquias.aplicar(server, stack, l.id) // aspecto propio de la reliquia, si tiene
         return stack
     }
 }

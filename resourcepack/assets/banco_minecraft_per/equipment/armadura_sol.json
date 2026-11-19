@@ -1,0 +1,14 @@
+{
+  "layers": {
+    "humanoid": [
+      {
+        "texture": "banco_minecraft_per:armadura_sol"
+      }
+    ],
+    "humanoid_leggings": [
+      {
+        "texture": "banco_minecraft_per:armadura_sol"
+      }
+    ]
+  }
+}
