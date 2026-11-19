@@ -119,20 +119,28 @@ def cabeza_y_cuello():
     return [
         bloque([6, 17.5, 6.5], [10, 21, 9.5], PIEL, "#mascara"),          # cuello
         # cabeza: volumen detrás de la máscara (el tocado la envuelve)
-        caja([4.25, 20.5, 4], [11.75, 30.5, 9.5], {
+        # llega hasta la máscara y cubre toda su altura, así no queda hueco entre máscara y cabeza
+        caja([3.5, 18.5, 3.5], [12.5, 31.5, 10], {
             "east": {"uv": uv(22, 4, 42, 16), "texture": "#mascara"},
             "west": {"uv": uv(22, 4, 42, 16), "texture": "#mascara"},
             "north": {"uv": uv(22, 4, 42, 16), "texture": "#mascara"},
             "up": {"uv": uv(24, 6, 40, 14), "texture": "#mascara"},
             "down": {"uv": PIEL, "texture": "#mascara"},
+            "south": {"uv": PIEL, "texture": "#mascara"},
         }),
     ]
 
 
+def nucleo(y0):
+    """Relleno del cuerpo dentro del unku: lo que se vea entre flecos o rendijas es tela, no vacío."""
+    return [bloque([4.5, y0, 5.5], [11.5, 19.5, 10.5], TELA, "#unku")]
+
+
 def piernas_de_pie():
     return [
-        bloque([4.5, -9, 6.5], [7.5, -4, 9.5], TELA, "#unku"),
-        bloque([8.5, -9, 6.5], [11.5, -4, 9.5], TELA, "#unku"),
+        # las piernas suben hasta dentro del unku: sin hueco entre el ruedo y las piernas
+        bloque([4.5, -9, 6.5], [7.5, 0, 9.5], TELA, "#unku"),
+        bloque([8.5, -9, 6.5], [11.5, 0, 9.5], TELA, "#unku"),
         bloque([4.25, -10, 6], [7.75, -9, 10.5], PIEL, "#mascara"),
         bloque([8.25, -10, 6], [11.75, -9, 10.5], PIEL, "#mascara"),
         # brazo izquierdo colgando al costado (el derecho es una pieza aparte que se anima)
@@ -154,8 +162,8 @@ def sentado_en_tiana():
     })
     return [
         regazo,
-        bloque([4.5, -9, 12], [7.5, 0.5, 15], TELA, "#unku"),
-        bloque([8.5, -9, 12], [11.5, 0.5, 15], TELA, "#unku"),
+        bloque([4.5, -9, 12], [7.5, 1, 15], TELA, "#unku"),
+        bloque([8.5, -9, 12], [11.5, 1, 15], TELA, "#unku"),
         bloque([4.25, -10, 11.5], [7.75, -9, 17], PIEL, "#mascara"),
         bloque([8.25, -10, 11.5], [11.75, -9, 17], PIEL, "#mascara"),
         bloque([2, -1, 3], [14, 0, 13], oro, "#tiana"),
@@ -247,11 +255,11 @@ def main():
                     "particle": f"banco_minecraft_per:item/unku_{ser}"}
         if ser in SENTADOS:
             # sentado en su tiana, con el arma en la mano (sin animación)
-            guardar(f"figura_{ser}", texturas, unku(img, 44) + mascara() + cabeza_y_cuello()
+            guardar(f"figura_{ser}", texturas, unku(img, 44) + nucleo(2) + mascara() + cabeza_y_cuello()
                     + sentado_en_tiana() + brazo_y_arma(ser))
         else:
             # de pie trabajando: cuerpo sin brazo derecho + brazo con arma aparte (gira desde el hombro)
-            guardar(f"figura_{ser}", texturas, unku(img) + mascara() + cabeza_y_cuello() + piernas_de_pie())
+            guardar(f"figura_{ser}", texturas, unku(img) + nucleo(-1) + mascara() + cabeza_y_cuello() + piernas_de_pie())
             hx, hy, hz = HOMBRO
             guardar(f"brazo_{ser}", texturas, brazo_y_arma(ser, (8 - hx, 8 - hy, 8 - hz)))
         print("figura", ser)
