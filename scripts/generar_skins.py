@@ -278,7 +278,32 @@ def contrabandista():
     return s
 
 
-SKINS = {"banquero": banquero, "tendero": tendero, "herrero": herrero, "mercader": mercader,
+# ------------------------------------------------------------------ Criador de animales (pastor andino)
+def criador():
+    s = Skin()
+    cabeza_base(s)
+    LANA = hexc("e8dcc4"); LANA_S = hexc("c9b896"); CAFE = hexc("7a4a28")
+    # chullo de lana con rombos y pompón
+    s.todo("sombrero", lambda x, y: ([CAFE, LANA, ROJO][y] if y < 3 else None), lambda x, y: LANA if (x, y) != (3, 3) else ROJO)
+    s.cara("sombrero", "frente", lambda x, y, W, H: (CAFE if y == 0 else (ROJO if (y == 1 and x % 3 == 1) else (LANA if y == 1 else (ROJO if y == 2 else None)))))
+    for lado in ("der", "izq"):
+        s.cara("sombrero", lado, lambda x, y, W, H: ((LANA if y % 2 else CAFE) if (y < 3 or (2 <= x <= 5 and y < 7)) else None))
+    # poncho de lana de alpaca con franjas y figuras de llama
+    def poncho(x, y):
+        if y in (2, 10):
+            return ROJO
+        if y in (3, 9):
+            return VERDE
+        if 5 <= y <= 7 and (x % 4) in (1, 2) and not (y == 7 and x % 4 == 2):
+            return CAFE
+        return LANA if y < 11 else LANA_S
+    s.todo("cuerpo", poncho, lambda x, y: LANA)
+    brazos(s, LANA, 6, ROJO)
+    piernas(s, CAFE, MARRON_S, banda=LANA_S)
+    return s
+
+
+SKINS = {"criador": criador, "banquero": banquero, "tendero": tendero, "herrero": herrero, "mercader": mercader,
          "bromista": bromista, "contrabandista": contrabandista}
 for nombre, fn in SKINS.items():
     fn().save(nombre)
@@ -315,7 +340,7 @@ try:
     fuente = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 22)
 except OSError:
     fuente = ImageFont.load_default()
-titulos = {"banquero": "Banquero", "tendero": "Tendero", "herrero": "Herrero", "mercader": "Mercader legendario",
+titulos = {"criador": "Criador", "banquero": "Banquero", "tendero": "Tendero", "herrero": "Herrero", "mercader": "Mercader legendario",
            "bromista": "Bromas", "contrabandista": "Mercado negro"}
 x = 20
 for nombre in SKINS:

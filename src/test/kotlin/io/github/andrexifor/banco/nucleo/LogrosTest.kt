@@ -36,7 +36,7 @@ class LogrosTest {
     fun `catalogos por defecto`() {
         val bromas = CatalogoOfertas.bromasPorDefecto()
         assertNotNull(bromas.buscar(CatalogoOfertas.VARA_VERDAD))
-        assertTrue(bromas.buscar("puyu_inti")!!.item.contains("flying_speed"))
+        assertTrue(CatalogoOfertas.animalesPorDefecto().buscar("puyu_inti")!!.item.contains("flying_speed"))
         assertEquals(6, CatalogoOfertas(null).normalizado(CatalogoOfertas::contrabandoPorDefecto).ofertas!!.size)
         assertEquals(-5.5, ConfigMercadoNegro(null, null).normalizada().entrada!!.z)
     }

@@ -121,7 +121,7 @@ los ve con textura faltante.
 
 ## Mercader de bromas y mercado negro
 
-Dos NPC más (tipos `bromista` y `contrabandista`), con skins propias en el resource pack.
+Tres NPC más (tipos `bromista`, `criador` y `contrabandista`), con skins propias en el resource pack.
 Sus catálogos están en `config/banco_minecraft_per/bromas.json` y `contrabando.json`.
 Cada artículo es un ítem en **formato de /give**, con componentes, así que se puede editar a mano:
 
@@ -133,8 +133,10 @@ Cada artículo es un ítem en **formato de /give**, con componentes, así que se
 
 Si un ítem está mal escrito, no aparece en el menú (y sale un aviso en el log).
 
-- **Mercader de bromas:** Vara de la Verdad (Empuje V y 2 % de rayo al golpear), huevo de
-  **Puyu del Inti** (ghast feliz con el doble de velocidad de vuelo), papa legendaria y corona del rey del barrio.
+- **Mercader de bromas:** Vara de la Verdad (Empuje V y 2 % de rayo al golpear), papa legendaria
+  y corona del rey del barrio.
+- **Criador de animales** (tipo `criador`, catálogo `animales.json`): huevo de **Puyu del Inti** (ghast feliz
+  con el doble de velocidad de vuelo), alpaca y llama andina ya domesticadas, y caballo de paso.
 - **Mercado negro (Nether):** se desbloquea **para siempre** la primera vez que el jugador lleva puesto
   el set completo de armadura legendaria (logro "Los dioses te ven de más cerca"). La puerta sellada
   (`puerta_negra`) lleva adentro y la salida (`salida_negra`) devuelve a la sala del portal; los destinos

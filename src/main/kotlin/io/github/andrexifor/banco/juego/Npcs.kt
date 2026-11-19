@@ -19,6 +19,7 @@ enum class TipoNpc(val id: String, val nombre: String, val profesion: String) {
     HERRERO("herrero", "Herrero", "minecraft:armorer"),
     MERCADER("mercader", "Mercader legendario", "minecraft:weaponsmith"),
     BROMISTA("bromista", "Mercader de bromas", "minecraft:cleric"),
+    CRIADOR("criador", "Criador de animales", "minecraft:shepherd"),
     CONTRABANDISTA("contrabandista", "Mercado negro", "minecraft:nitwit"),
     /** Puerta sellada del mercado negro (entidad de interacción): lleva adentro si está desbloqueado. */
     PUERTA_NEGRA("puerta_negra", "Puerta del mercado negro", "minecraft:nitwit"),
@@ -89,6 +90,7 @@ object Npcs {
             TipoNpc.HERRERO -> GuiHerrero.abrir(jugador)
             TipoNpc.MERCADER -> GuiMercader.abrir(jugador)
             TipoNpc.BROMISTA -> GuiOfertas.abrir(jugador, Tienda.BROMAS)
+            TipoNpc.CRIADOR -> GuiOfertas.abrir(jugador, Tienda.ANIMALES)
             TipoNpc.CONTRABANDISTA ->
                 if (MercadoNegro.desbloqueado(jugador)) {
                     GuiOfertas.abrir(jugador, Tienda.CONTRABANDO)

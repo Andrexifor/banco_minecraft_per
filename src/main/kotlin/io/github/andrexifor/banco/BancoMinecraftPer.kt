@@ -49,6 +49,8 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         private set
     lateinit var contrabando: CatalogoOfertas
         private set
+    lateinit var animales: CatalogoOfertas
+        private set
     lateinit var mercadoNegro: ConfigMercadoNegro
         private set
 
@@ -66,6 +68,7 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         zonas = almacen.cargarZonas()
         bromas = almacen.cargarBromas()
         contrabando = almacen.cargarContrabando()
+        animales = almacen.cargarAnimales()
         mercadoNegro = almacen.cargarMercadoNegro()
         Npcs.cargar()
         Logros.cargar()
@@ -123,6 +126,7 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         zonas = almacen.cargarZonas()
         bromas = almacen.cargarBromas()
         contrabando = almacen.cargarContrabando()
+        animales = almacen.cargarAnimales()
         mercadoNegro = almacen.cargarMercadoNegro()
     }
 }

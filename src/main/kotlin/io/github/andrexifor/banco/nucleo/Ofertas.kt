@@ -57,17 +57,6 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
                     precio = 2_500_000, descripcion = "Empuje V y, muy de vez en cuando, un rayo",
                 ),
                 Oferta(
-                    "puyu_inti", NOMBRE_GHAST,
-                    "minecraft:happy_ghast_spawn_egg[" + listOf(
-                        "entity_data={id:\"minecraft:happy_ghast\",CustomName:{text:\"$NOMBRE_GHAST\",color:\"gold\"}," +
-                            "PersistenceRequired:1b,attributes:[{id:\"minecraft:flying_speed\",base:0.1d}]}",
-                        nombre("Huevo de $NOMBRE_GHAST", "gold"),
-                        lore("Ghast feliz que vuela el doble de rápido", "Nube del Sol, en quechua"),
-                        marca("puyu_inti"),
-                    ).joinToString(",") + "]",
-                    precio = 3_000_000, descripcion = "Ghast feliz que vuela el doble de rápido",
-                ),
-                Oferta(
                     "papa_legendaria", "Papa legendaria",
                     "minecraft:potato[" + listOf(
                         "enchantment_glint_override=true",
@@ -86,6 +75,53 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
                         marca("corona_barrio"),
                     ).joinToString(",") + "]",
                     precio = 1_000_000, descripcion = "No te la puedes quitar. Si mueres, desaparece",
+                ),
+            ),
+        )
+
+        fun animalesPorDefecto() = CatalogoOfertas(
+            mutableListOf(
+                Oferta(
+                    "puyu_inti", NOMBRE_GHAST,
+                    "minecraft:happy_ghast_spawn_egg[" + listOf(
+                        "entity_data={id:\"minecraft:happy_ghast\",CustomName:{text:\"$NOMBRE_GHAST\",color:\"gold\"}," +
+                            "PersistenceRequired:1b,attributes:[{id:\"minecraft:flying_speed\",base:0.1d}]}",
+                        nombre("Huevo de $NOMBRE_GHAST", "gold"),
+                        lore("Ghast feliz que vuela el doble de rápido", "Nube del Sol, en quechua"),
+                        marca("puyu_inti"),
+                    ).joinToString(",") + "]",
+                    precio = 3_000_000, descripcion = "Ghast feliz que vuela el doble de rápido",
+                ),
+                Oferta(
+                    "alpaca", "Alpaca",
+                    "minecraft:llama_spawn_egg[" + listOf(
+                        "entity_data={id:\"minecraft:llama\",Variant:1,Tame:1b,PersistenceRequired:1b," +
+                            "CustomName:{text:\"Alpaca\",color:\"white\"}}",
+                        nombre("Huevo de alpaca", "white"),
+                        lore("Ya viene domesticada", "Lana fina de los Andes"),
+                    ).joinToString(",") + "]",
+                    precio = 80_000, descripcion = "Alpaca blanca ya domesticada", anunciar = false,
+                ),
+                Oferta(
+                    "llama", "Llama andina",
+                    "minecraft:llama_spawn_egg[" + listOf(
+                        "entity_data={id:\"minecraft:llama\",Variant:2,Tame:1b,PersistenceRequired:1b," +
+                            "CustomName:{text:\"Llama andina\",color:\"gold\"}}",
+                        nombre("Huevo de llama andina", "gold"),
+                        lore("Ya viene domesticada", "Lleva carga con un cofre"),
+                    ).joinToString(",") + "]",
+                    precio = 50_000, descripcion = "Llama marrón ya domesticada", anunciar = false,
+                ),
+                Oferta(
+                    "caballo", "Caballo de paso",
+                    "minecraft:horse_spawn_egg[" + listOf(
+                        "entity_data={id:\"minecraft:horse\",Tame:1b,PersistenceRequired:1b," +
+                            "attributes:[{id:\"minecraft:movement_speed\",base:0.3d},{id:\"minecraft:jump_strength\",base:0.9d}]," +
+                            "CustomName:{text:\"Caballo de paso\",color:\"gold\"}}",
+                        nombre("Huevo de caballo de paso", "gold"),
+                        lore("Domesticado, rápido y buen saltador", "Ponle una silla y listo"),
+                    ).joinToString(",") + "]",
+                    precio = 250_000, descripcion = "Caballo domesticado, rápido y buen saltador", anunciar = false,
                 ),
             ),
         )

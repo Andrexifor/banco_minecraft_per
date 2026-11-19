@@ -24,11 +24,16 @@ import net.minecraft.world.item.Items
 /** Los dos mercaderes especiales: el de bromas (plaza) y el del mercado negro (Nether). */
 enum class Tienda(val titulo: String, val color: ChatFormatting, val concepto: String) {
     BROMAS("Mercader de bromas", ChatFormatting.LIGHT_PURPLE, "BROMA"),
+    ANIMALES("Criador de animales", ChatFormatting.GREEN, "ANIMAL"),
     CONTRABANDO("Mercado negro", ChatFormatting.DARK_RED, "CONTRABANDO"),
     ;
 
     val catalogo: CatalogoOfertas
-        get() = if (this == BROMAS) BancoMinecraftPer.bromas else BancoMinecraftPer.contrabando
+        get() = when (this) {
+            BROMAS -> BancoMinecraftPer.bromas
+            ANIMALES -> BancoMinecraftPer.animales
+            CONTRABANDO -> BancoMinecraftPer.contrabando
+        }
 }
 
 object GuiOfertas {
@@ -95,6 +100,7 @@ object GuiOfertas {
         when (tienda) {
             Tienda.BROMAS -> Logros.sumar(j, Contador.GASTO_BROMAS, o.precio + impuesto, Metas.GASTO_BROMAS, Logro.PLATA_COMO_CANCHA)
             Tienda.CONTRABANDO -> Logros.sumar(j, Contador.COMPRAS_NEGRO, 1, Metas.COMPRAS_NEGRO, Logro.VIP_MERCADO_NEGRO)
+            Tienda.ANIMALES -> Unit
         }
         return Respuesta(true, "¡${o.nombre} es tuyo! ${cobro.mensaje}")
     }
