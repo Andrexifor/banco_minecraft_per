@@ -91,6 +91,15 @@ def cuerpo_oculto():
         return caja(desde, hasta, {f: {"uv": cara, "texture": tex} for f in ("north", "south", "east", "west", "up", "down")})
     return [
         bloque([6, 17.5, 6.5], [10, 21, 9.5], piel, "#mascara"),          # cuello
+        # cabeza: volumen detrás de la máscara (el tocado la envuelve), para que de costado
+        # no parezca una placa sin cabeza
+        caja([4.25, 20.5, 4], [11.75, 30.5, 9.5], {
+            "east": {"uv": uv(22, 4, 42, 16), "texture": "#mascara"},
+            "west": {"uv": uv(22, 4, 42, 16), "texture": "#mascara"},
+            "north": {"uv": uv(22, 4, 42, 16), "texture": "#mascara"},
+            "up": {"uv": uv(24, 6, 40, 14), "texture": "#mascara"},
+            "down": {"uv": uv(21, 43, 25, 47), "texture": "#mascara"},
+        }),
         bloque([4.5, -9, 6.5], [7.5, -4, 9.5], tela, "#unku"),            # pierna izquierda
         bloque([8.5, -9, 6.5], [11.5, -4, 9.5], tela, "#unku"),           # pierna derecha
         bloque([4.25, -10, 6], [7.75, -9, 10.5], piel, "#mascara"),       # pie izquierdo
