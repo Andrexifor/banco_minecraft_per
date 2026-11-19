@@ -1,0 +1,121 @@
+package io.github.andrexifor.banco.juego
+
+import eu.pb4.sgui.api.gui.SimpleGui
+import io.github.andrexifor.banco.BancoMinecraftPer
+import io.github.andrexifor.banco.juego.GuiUtil.texto
+import io.github.andrexifor.banco.nucleo.CatalogoOfertas
+import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry
+import net.fabricmc.fabric.api.attachment.v1.AttachmentType
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
+import net.fabricmc.fabric.api.event.player.UseEntityCallback
+import net.minecraft.ChatFormatting
+import net.minecraft.core.BlockPos
+import net.minecraft.resources.Identifier
+import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.InteractionResult
+import net.minecraft.world.SimpleContainer
+import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.item.ItemEntity
+import net.minecraft.world.inventory.MenuType
+import net.minecraft.world.inventory.Slot
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.level.block.Blocks
+import kotlin.random.Random
+
+/**
+ * Monturas especiales del criador:
+ *  - Caballo zombi: mientras alguien lo monta, el agua bajo sus patas se vuelve hielo
+ *    escarchado (como Paso helado) y se derrite sola; así corre y salta sobre el agua.
+ *  - Mula de carga: Shift + clic derecho abre una alforja de 54 casillas guardada en la mula
+ *    (si la mula muere, la carga cae al suelo).
+ */
+object Monturas {
+    private const val RADIO_HIELO = 3
+    private const val CASILLAS_ALFORJA = 54
+
+    /** Contenido de la alforja, guardado dentro de la propia mula (persiste con el mundo). */
+    private val ALFORJA: AttachmentType<List<ItemStack>> = AttachmentRegistry.createPersistent(
+        Identifier.fromNamespaceAndPath(BancoMinecraftPer.MOD_ID, "alforja"),
+        ItemStack.OPTIONAL_CODEC.listOf(),
+    )
+
+    private fun esZombiAcuatico(e: Entity?): Boolean =
+        e != null && e.type == EntityType.ZOMBIE_HORSE && e.customName?.string == CatalogoOfertas.NOMBRE_ZOMBI
+
+    private fun esMulaDeCarga(e: Entity): Boolean =
+        e.type == EntityType.MULE && e.customName?.string == CatalogoOfertas.NOMBRE_MULA
+
+    fun registrarEventos() {
+        ServerTickEvents.END_SERVER_TICK.register { servidor -> congelarBajoZombis(servidor) }
+
+        UseEntityCallback.EVENT.register { jugador, _, _, entidad, _ ->
+            if (jugador is ServerPlayer && jugador.isShiftKeyDown && esMulaDeCarga(entidad)) {
+                abrirAlforja(jugador, entidad)
+                InteractionResult.SUCCESS
+            } else {
+                InteractionResult.PASS
+            }
+        }
+
+        ServerLivingEntityEvents.AFTER_DEATH.register { muerto, _ ->
+            val carga = muerto.getAttached(ALFORJA)
+            if (carga != null) {
+                val nivel = muerto.level() as? ServerLevel
+                if (nivel != null) {
+                    carga.filter { !it.isEmpty }.forEach {
+                        nivel.addFreshEntity(ItemEntity(nivel, muerto.x, muerto.y + 0.5, muerto.z, it.copy()))
+                    }
+                }
+                muerto.removeAttached(ALFORJA)
+            }
+        }
+    }
+
+    // ---------- caballo zombi sobre el agua ----------
+
+    private fun congelarBajoZombis(servidor: MinecraftServer) {
+        for (j in servidor.playerList.players) {
+            val montura = j.vehicle
+            if (!esZombiAcuatico(montura)) continue
+            val nivel = montura!!.level() as? ServerLevel ?: continue
+            val centro = montura.blockPosition()
+            for (dx in -RADIO_HIELO..RADIO_HIELO) {
+                for (dz in -RADIO_HIELO..RADIO_HIELO) {
+                    if (dx * dx + dz * dz > RADIO_HIELO * RADIO_HIELO) continue
+                    congelar(nivel, centro.offset(dx, -1, dz))
+                }
+            }
+        }
+    }
+
+    private fun congelar(nivel: ServerLevel, pos: BlockPos) {
+        val estado = nivel.getBlockState(pos)
+        if (!estado.`is`(Blocks.WATER) || !estado.fluidState.isSource) return
+        if (!nivel.isEmptyBlock(pos.above())) return
+        if (Proteccion.zonaEn(nivel, pos) != null) return
+        nivel.setBlockAndUpdate(pos, Blocks.FROSTED_ICE.defaultBlockState())
+        nivel.scheduleTick(pos, Blocks.FROSTED_ICE, Random.nextInt(60, 120))
+    }
+
+    // ---------- alforja de la mula ----------
+
+    private fun abrirAlforja(j: ServerPlayer, mula: Entity) {
+        val guardado = mula.getAttached(ALFORJA).orEmpty()
+        val contenedor = SimpleContainer(CASILLAS_ALFORJA)
+        guardado.take(CASILLAS_ALFORJA).forEachIndexed { i, s -> contenedor.setItem(i, s.copy()) }
+        val gui = object : SimpleGui(MenuType.GENERIC_9x6, j, false) {
+            override fun onClose() {
+                val lista = (0 until CASILLAS_ALFORJA).map { contenedor.getItem(it).copy() }
+                if (lista.all { it.isEmpty }) mula.removeAttached(ALFORJA) else mula.setAttached(ALFORJA, lista)
+            }
+        }
+        gui.setTitle(texto("Alforja de ${mula.customName?.string ?: "la mula"}", ChatFormatting.GOLD))
+        for (i in 0 until CASILLAS_ALFORJA) gui.setSlotRedirect(i, Slot(contenedor, i, 0, 0))
+        gui.open()
+        BancoMinecraftPer.LOGGER.debug("Alforja abierta por {}", j.name.string)
+    }
+}

@@ -135,11 +135,21 @@ Si un ítem está mal escrito, no aparece en el menú (y sale un aviso en el log
 
 - **Mercader de bromas:** Vara de la Verdad (Empuje V y 2 % de rayo al golpear), papa legendaria
   y corona del rey del barrio.
-- **Criador de animales** (tipo `criador`, catálogo `animales.json`): huevos de
-  **Puyu del Inti** (ghast feliz, el doble de velocidad de vuelo, con arnés), **caballo de paso** (rápido, blanco
-  con manchas, armadura de oro), **caballo esqueleto** (40 de vida), **caballo zombi** (nada a toda velocidad),
-  **alpaca** (más pequeña, con manta) y **llama andina** (carga máxima). Los caballos vienen ensillados.
-  Las llamas y alpacas no se pueden manejar (límite de Minecraft): se guían con soga y llevan cofre.
+- **Criador de animales** (tipo `criador`, catálogo `animales.json`), todos domesticados y listos para usar:
+  - **Puyu del Inti:** ghast feliz con el doble de velocidad de vuelo y el **Arnés del Inti** (aspecto propio).
+  - **Caballo de paso:** rápido, buen saltador, ensillado y con **Armadura inca** (aspecto propio).
+  - **Caballo esqueleto:** 40 de vida y más rápido que cualquier caballo natural.
+  - **Caballo zombi:** igual de rápido y **camina sobre el agua** (el agua bajo sus patas se vuelve hielo
+    escarchado mientras alguien lo monta y se derrite sola).
+  - **Mula de carga:** ensillada y rápida; **Shift + clic derecho** abre una **alforja de 54 casillas** guardada
+    en la mula (si muere, la carga cae al suelo).
+  - **Alpaquita:** alpaca cría que nunca crece.
+
+  **Aspecto propio sin mods:** Minecraft no permite texturas por animal, pero sí por **equipo**. El arnés y la
+  armadura llevan un componente `equippable` con `asset_id` propio
+  (`resourcepack/assets/banco_minecraft_per/equipment/*.json`), así que solo el animal que los lleva puestos
+  se ve distinto. Las texturas salen de `scripts/generar_equipo.py`, que usa las texturas vanilla del jar del
+  cliente solo como plantilla de forma.
 - **Mercado negro (Nether):** se desbloquea **para siempre** la primera vez que el jugador lleva puesto
   el set completo de armadura legendaria (logro "Los dioses te ven de más cerca"). La puerta sellada
   (`puerta_negra`) lleva adentro y la salida (`salida_negra`) devuelve a la sala del portal; los destinos

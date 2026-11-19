@@ -5,6 +5,7 @@ import io.github.andrexifor.banco.juego.Comandos
 import io.github.andrexifor.banco.juego.Bromas
 import io.github.andrexifor.banco.juego.ImanBotin
 import io.github.andrexifor.banco.juego.Logros
+import io.github.andrexifor.banco.juego.Monturas
 import io.github.andrexifor.banco.juego.KitsReparacion
 import io.github.andrexifor.banco.juego.Npcs
 import io.github.andrexifor.banco.juego.Proteccion
@@ -78,6 +79,7 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         Proteccion.registrarEventos()
         Bromas.registrarEventos()
         Logros.registrarEventos()
+        Monturas.registrarEventos()
         LOGGER.info(
             "Banco Minecraft PER listo: {} cuentas, {} productos en la tienda, {} legendarios, {} zonas protegidas",
             banco.todas().size,

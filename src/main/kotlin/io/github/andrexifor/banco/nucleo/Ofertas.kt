@@ -87,7 +87,29 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
         private fun huevo(egg: String, entityData: String, nombreHuevo: String, color: String, vararg l: String) =
             "minecraft:$egg[" + listOf(entityData, nombre(nombreHuevo, color), lore(*l)).joinToString(",") + "]"
 
-        private const val SILLA = "equipment:{saddle:{id:\"minecraft:saddle\",count:1}}"
+        private const val SILLA = "saddle:{id:\"minecraft:saddle\",count:1}"
+        const val NOMBRE_ZOMBI = "Caballo zombi"
+        const val NOMBRE_MULA = "Mula de carga"
+
+        /** Velocidad de los caballos especiales: por encima del máximo natural (0.3375). */
+        private const val VELOCIDAD_ESPECIAL = 0.36
+
+        /**
+         * Equipo con aspecto propio: el resource pack dibuja assets/banco_minecraft_per/equipment/<asset>.json
+         * solo en los animales que llevan ESTE ítem (el resto de su especie se ve normal).
+         */
+        private fun equipoCustom(item: String, asset: String, entidades: String, sonido: String, nombre: String) =
+            "{id:\"minecraft:$item\",count:1,components:{" +
+                "\"minecraft:equippable\":{slot:\"body\",asset_id:\"banco_minecraft_per:$asset\"," +
+                "allowed_entities:\"$entidades\",equip_sound:\"$sonido\",can_be_sheared:true}," +
+                "\"minecraft:custom_name\":{text:\"$nombre\",color:\"gold\",italic:false}}}"
+
+        private val ARNES_PUYU = equipoCustom(
+            "yellow_harness", "puyu_inti", "minecraft:happy_ghast", "minecraft:entity.happy_ghast.equip", "Arnés del Inti",
+        )
+        private val ARMADURA_INCA = equipoCustom(
+            "golden_horse_armor", "armadura_inca", "minecraft:horse", "minecraft:item.armor.equip_horse", "Armadura inca",
+        )
 
         fun animalesPorDefecto() = CatalogoOfertas(
             mutableListOf(
@@ -97,12 +119,12 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
                         "entity_data={id:\"minecraft:happy_ghast\",PersistenceRequired:1b," +
                             "CustomName:{text:\"$NOMBRE_GHAST\",color:\"gold\"}," +
                             "attributes:[{id:\"minecraft:flying_speed\",base:0.1d}]," +
-                            "equipment:{body:{id:\"minecraft:yellow_harness\",count:1}}}",
+                            "equipment:{body:$ARNES_PUYU}}",
                         nombre("Huevo de $NOMBRE_GHAST", "gold"),
-                        lore("Ghast feliz que vuela el doble de rápido", "Viene con arnés dorado", "Nube del Sol, en quechua"),
+                        lore("Ghast feliz que vuela el doble de rápido", "Viene con el Arnés del Inti", "Nube del Sol, en quechua"),
                         marca("puyu_inti"),
                     ).joinToString(",") + "]",
-                    precio = 3_000_000, descripcion = "Vuela el doble de rápido; viene con arnés",
+                    precio = 3_000_000, descripcion = "Vuela el doble de rápido; con el Arnés del Inti",
                 ),
                 Oferta(
                     "caballo", "Caballo de paso",
@@ -112,12 +134,12 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
                             "horse", "Caballo de paso", "gold",
                             "Variant:1024," +
                                 "attributes:[{id:\"minecraft:movement_speed\",base:0.3d},{id:\"minecraft:jump_strength\",base:0.9d}]," +
-                                "equipment:{saddle:{id:\"minecraft:saddle\",count:1},body:{id:\"minecraft:golden_horse_armor\",count:1}}",
+                                "equipment:{$SILLA,body:$ARMADURA_INCA}",
                         ),
                         "Huevo de caballo de paso", "gold",
-                        "Blanco con manchas, armadura de oro", "Rápido y buen saltador; ya ensillado",
+                        "Con armadura inca", "Rápido y buen saltador; ya ensillado",
                     ),
-                    precio = 250_000, descripcion = "Rápido, buen saltador, ensillado y con armadura de oro", anunciar = false,
+                    precio = 250_000, descripcion = "Rápido, buen saltador, ensillado y con armadura inca", anunciar = false,
                 ),
                 Oferta(
                     "caballo_esqueleto", "Caballo esqueleto",
@@ -125,52 +147,51 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
                         "skeleton_horse_spawn_egg",
                         animal(
                             "skeleton_horse", "Caballo esqueleto", "gray",
-                            "Health:40f,attributes:[{id:\"minecraft:max_health\",base:40d}],$SILLA",
+                            "Health:40f,attributes:[{id:\"minecraft:max_health\",base:40d}," +
+                                "{id:\"minecraft:movement_speed\",base:${VELOCIDAD_ESPECIAL}d}],equipment:{$SILLA}",
                         ),
                         "Huevo de caballo esqueleto", "gray",
-                        "40 de vida (el doble de un caballo)", "Ya ensillado",
+                        "40 de vida (el doble de un caballo)", "Más rápido que cualquier caballo; ensillado",
                     ),
-                    precio = 400_000, descripcion = "El doble de vida que un caballo; ensillado", anunciar = false,
+                    precio = 400_000, descripcion = "El doble de vida y más rápido que cualquier caballo", anunciar = false,
                 ),
                 Oferta(
-                    "caballo_zombi", "Caballo zombi",
+                    "caballo_zombi", NOMBRE_ZOMBI,
                     huevo(
                         "zombie_horse_spawn_egg",
                         animal(
-                            "zombie_horse", "Caballo zombi", "dark_green",
-                            "attributes:[{id:\"minecraft:water_movement_efficiency\",base:1d}],$SILLA",
+                            "zombie_horse", NOMBRE_ZOMBI, "dark_green",
+                            "attributes:[{id:\"minecraft:movement_speed\",base:${VELOCIDAD_ESPECIAL}d}," +
+                                "{id:\"minecraft:water_movement_efficiency\",base:1d}],equipment:{$SILLA}",
                         ),
                         "Huevo de caballo zombi", "dark_green",
-                        "Nada en el agua a toda velocidad", "Ya ensillado",
+                        "Camina sobre el agua (la congela al pasar)", "Más rápido que cualquier caballo; ensillado",
                     ),
-                    precio = 350_000, descripcion = "Nada en el agua a toda velocidad; ensillado", anunciar = false,
+                    precio = 350_000, descripcion = "Camina sobre el agua y es más rápido que cualquier caballo", anunciar = false,
                 ),
                 Oferta(
-                    "alpaca", "Alpaca",
+                    "mula", NOMBRE_MULA,
                     huevo(
-                        "llama_spawn_egg",
+                        "mule_spawn_egg",
                         animal(
-                            "llama", "Alpaca", "white",
-                            "Variant:1,attributes:[{id:\"minecraft:scale\",base:0.8d}]," +
-                                "equipment:{body:{id:\"minecraft:magenta_carpet\",count:1}}",
+                            "mule", NOMBRE_MULA, "gold",
+                            "ChestedHorse:1b,attributes:[{id:\"minecraft:movement_speed\",base:0.3d}],equipment:{$SILLA}",
                         ),
-                        "Huevo de alpaca", "white",
-                        "Más pequeña, blanca y con manta de colores", "Ya domesticada (se guía con soga, no se maneja)",
+                        "Huevo de mula de carga", "gold",
+                        "Se maneja como un caballo; ya ensillada", "Shift + clic derecho: alforja de 54 casillas",
                     ),
-                    precio = 80_000, descripcion = "Pequeña, blanca y con manta; domesticada", anunciar = false,
+                    precio = 300_000, descripcion = "Montable, rápida y con alforja de 54 casillas", anunciar = false,
                 ),
                 Oferta(
-                    "llama", "Llama andina",
+                    "alpaquita", "Alpaquita",
                     huevo(
                         "llama_spawn_egg",
-                        animal(
-                            "llama", "Llama andina", "gold",
-                            "Variant:2,Strength:5,equipment:{body:{id:\"minecraft:red_carpet\",count:1}}",
-                        ),
-                        "Huevo de llama andina", "gold",
-                        "Carga máxima (15 casillas con cofre)", "Ya domesticada (se guía con soga, no se maneja)",
+                        "entity_data={id:\"minecraft:llama\",Variant:1,Age:-24000,AgeLocked:1b,PersistenceRequired:1b," +
+                            "CustomName:{text:\"Alpaquita\",color:\"light_purple\"}}",
+                        "Huevo de Alpaquita", "light_purple",
+                        "Una alpaca cría que nunca crece", "Ponle otro nombre con un nametag",
                     ),
-                    precio = 50_000, descripcion = "Lleva la máxima carga con un cofre; domesticada", anunciar = false,
+                    precio = 80_000, descripcion = "Alpaca cría que se queda chiquita para siempre", anunciar = false,
                 ),
             ),
         )
