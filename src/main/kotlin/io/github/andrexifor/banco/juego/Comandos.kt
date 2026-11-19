@@ -25,7 +25,7 @@ import net.minecraft.server.level.ServerPlayer
  * Permisos (LuckPerms):
  *   banco_minecraft_per.saldo.otros  -> /saldo <jugador>                         (por defecto: op 2)
  *   banco_minecraft_per.admin        -> /banco dar|quitar|fijar|crear|recargar|npc|zonas (por defecto: op 3)
- *   banco_minecraft_per.zonas.editar -> construir dentro de las zonas protegidas (por defecto: op 2)
+ *   banco_minecraft_per.zonas.editar -> construir en las zonas protegidas, solo en creativo (por defecto: op 2)
  */
 object Comandos {
     private const val PERM = BancoMinecraftPer.MOD_ID
@@ -235,7 +235,7 @@ object Comandos {
         val jugador = ctx.source.player
         val actual = jugador?.let { Proteccion.zonaEn(it.level(), it.blockPosition()) }
         val texto = buildString {
-            append("Zonas protegidas (solo op construye):")
+            append("Zonas protegidas (solo se edita en creativo y siendo op):")
             for (z in lista) {
                 append("\n- ${z.nombre} [${z.dimension}] ${z.x1},${z.y1},${z.z1} -> ${z.x2},${z.y2},${z.z2}")
                 if (!z.activa) append(" (desactivada)")

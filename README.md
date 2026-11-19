@@ -107,9 +107,9 @@ Con LuckPerms, dáselos al grupo admin:
 
 ## Zonas protegidas
 
-Dentro de una zona protegida **solo los op** (nivel 2 o más, o quien tenga el permiso
-`banco_minecraft_per.zonas.editar`) pueden romper o poner bloques, abrir cofres, usar cubetas
-o tocar los soportes de armadura. Los demás pueden caminar, hablar con los aldeanos del banco
+Dentro de una zona protegida **nadie en supervivencia** puede romper o poner bloques, abrir
+cofres, usar cubetas o tocar los soportes de armadura, ni siquiera un op. Para editarla hay que
+estar en **modo creativo** y ser op (nivel 2 o más, o tener el permiso `banco_minecraft_per.zonas.editar`). Los demás pueden caminar, hablar con los aldeanos del banco
 y usar el portal. Las explosiones (creepers, TNT, ghasts) no rompen bloques ahí.
 
 Se configuran en `config/banco_minecraft_per/zonas.json` (las esquinas, en cualquier orden):

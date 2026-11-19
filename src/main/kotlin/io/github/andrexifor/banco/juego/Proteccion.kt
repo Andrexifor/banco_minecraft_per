@@ -21,9 +21,10 @@ import net.minecraft.world.level.Level
 import java.util.UUID
 
 /**
- * Zonas protegidas (config/banco_minecraft_per/zonas.json): dentro, solo los op
- * (nivel 2+) o quien tenga banco_minecraft_per.zonas.editar pueden romper, poner
- * o usar bloques, usar cubetas, ni tocar soportes de armadura. Los aldeanos del
+ * Zonas protegidas (config/banco_minecraft_per/zonas.json): dentro, nadie en
+ * supervivencia puede romper, poner o usar bloques, usar cubetas ni tocar soportes
+ * de armadura. Solo se puede editar en modo creativo y siendo op (nivel 2+) o con
+ * banco_minecraft_per.zonas.editar. Los aldeanos del
  * banco y el portal se siguen usando normal. Las explosiones no rompen bloques ahí
  * (ExplosionMixin).
  */
@@ -42,7 +43,8 @@ object Proteccion {
     fun zonaEn(level: Level, pos: BlockPos, margen: Int = 0): Zona? =
         BancoMinecraftPer.zonas.buscar(nombreDimension(level), pos.x, pos.y, pos.z, margen)
 
-    private fun puedeEditar(jugador: Player): Boolean = Permissions.check(jugador, PERM_EDITAR, 2)
+    private fun puedeEditar(jugador: Player): Boolean =
+        jugador.isCreative && Permissions.check(jugador, PERM_EDITAR, 2)
 
     private fun bloqueado(jugador: Player, level: Level, pos: BlockPos, margen: Int = 0): Boolean {
         if (jugador !is ServerPlayer) return false
