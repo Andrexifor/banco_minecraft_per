@@ -156,6 +156,9 @@ Si un ítem está mal escrito, no aparece en el menú (y sale un aviso en el log
   se ve distinto. Las monturas usan el mismo truco con `slot:"saddle"` (capas `mule_saddle`,
   `zombie_horse_saddle`, `skeleton_horse_saddle`). Las texturas salen de `scripts/generar_equipo.py` y
   `scripts/generar_monturas.py`, que usan las texturas vanilla solo como plantilla de forma.
+- **Seres cósmicos de los puestos:** `scripts/generar_seres.py` dibuja los cuatro orbes con ojo
+  (`ser_banquero`, `ser_tendero`, `ser_herrero`, `ser_mercader`); el datapack de la plaza los pone con
+  `item_display` flotantes y una entidad `interaction` invisible registrada como NPC.
 - **Inti de la plaza:** `scripts/generar_inti.py` dibuja el sol inca con rostro (`item_model`
   `banco_minecraft_per:inti_sol`); el datapack de la plaza lo muestra gigante con un `item_display`.
 - **Mercado negro (Nether):** se desbloquea **para siempre** la primera vez que el jugador lleva puesto
