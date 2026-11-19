@@ -52,7 +52,7 @@ object SeresCosmicos {
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun <T> dato(nombre: String): EntityDataAccessor<T>? = try {
+    private fun <T : Any> dato(nombre: String): EntityDataAccessor<T>? = try {
         Display::class.java.getDeclaredField(nombre).apply { isAccessible = true }.get(null) as EntityDataAccessor<T>
     } catch (e: Exception) {
         BancoMinecraftPer.LOGGER.warn("Seres cósmicos: falta el dato {} de los displays ({})", nombre, e.message)
