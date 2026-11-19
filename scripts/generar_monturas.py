@@ -31,6 +31,7 @@ TEMAS = {
         franjas=[hexc(c) for c in ("c2185b", "ff7a1a", "ffd23f", "2e9e4f", "d7263d", "1f4e9e")],
         fondo=hexc("8e1b3a"), linea=NEGRO, cuero=hexc("7a3b1d"), cuero_s=hexc("5a2a14"),
         metal=ORO, flecos=[hexc(c) for c in ("ff3fa4", "ffd23f", "3fd0ff", "7bd23f")],
+        caida=8, multicolor=[hexc(c) for c in ("ff3fa4", "ffd23f", "2e9e4f", "3fd0ff", "ff7a1a")],
     ),
     # caballo zombi: olas del lago Titicaca, azul y turquesa con oro
     "montura_titicaca": dict(
@@ -64,20 +65,27 @@ def textura(t):
     for y in range(base.size[1]):
         for x in range(base.size[0]):
             tapa = 35 <= x <= 44 and y <= 8
-            costado = 26 <= x <= 63 and 9 <= y < 9 + CAIDA + 1
+            caida = t.get("caida", CAIDA)
+            costado = 26 <= x <= 63 and 9 <= y < 9 + caida + 1
             if tapa:
                 # tapa: borde de línea y en el centro el diseño del tema
                 if x in (35, 44) or y in (0, 8):
                     c = t["linea"]
                 elif t["entidad"] == "skeleton_horse":
                     c = t["linea"] if chakana(x, y) else t["fondo"]
+                elif t["entidad"] == "mule":
+                    # tapa del aguayo: rombo grande concéntrico de colores
+                    d = abs(x - 39.5) + abs(y - 4)
+                    c = [franjas[2], franjas[0], franjas[3], franjas[1], t["fondo"]][min(4, int(d // 1.5))]
                 else:
                     c = franjas[(y - 1) % len(franjas)]
                 out.putpixel((x, y), c)
             elif costado:
                 fila = y - 9
-                if fila == CAIDA:  # flecos / pompones
-                    if x % 2 == 0:
+                if fila == caida:  # flecos / pompones
+                    if t["entidad"] == "mule":
+                        out.putpixel((x, y), t["flecos"][x % len(t["flecos"])])
+                    elif x % 2 == 0:
                         out.putpixel((x, y), t["flecos"][(x // 2) % len(t["flecos"])])
                 elif fila == 0:
                     out.putpixel((x, y), t["linea"])
@@ -91,9 +99,19 @@ def textura(t):
                     paso = (x // 3 + fila) % 4
                     out.putpixel((x, y), t["linea"] if paso == 0 and fila in (2, 3, 4) else franjas[fila % len(franjas)])
                 else:
-                    c = franjas[(fila - 1) % len(franjas)]
-                    if fila == 3 and x % 4 in (1, 2):  # rombos del aguayo
-                        c = t["linea"]
+                    # aguayo: franjas finas y dos bandas anchas con rombos de colores
+                    if fila in (1, 5, 7):
+                        c = franjas[{1: 0, 5: 3, 7: 5}[fila]]
+                        if fila == 5 and x % 3 == 0:
+                            c = franjas[2]
+                    elif 2 <= fila <= 4:
+                        m = x % 6
+                        if fila == 3:
+                            c = franjas[3] if m in (2, 3) else franjas[2] if m in (1, 4) else franjas[4]
+                        else:
+                            c = franjas[2] if m in (2, 3) else franjas[4]
+                    else:  # fila 6
+                        c = franjas[4] if (x % 4) in (1, 2) else franjas[1]
                     out.putpixel((x, y), c)
             elif a.getpixel((x, y)) > 0:
                 # correas, riendas, cabezada y estribos: cuero del tema y metal
@@ -101,6 +119,9 @@ def textura(t):
                 gris = abs(r - g) < 18 and abs(g - b) < 18
                 if gris:
                     out.putpixel((x, y), t["metal"])
+                elif "multicolor" in t:
+                    # cabezada y riendas tejidas de colores, como las de las llamas de fiesta
+                    out.putpixel((x, y), t["multicolor"][(x + y) % len(t["multicolor"])])
                 else:
                     out.putpixel((x, y), t["cuero"] if (r + g + b) > 180 else t["cuero_s"])
     return out

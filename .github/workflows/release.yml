@@ -41,6 +41,8 @@ jobs:
         run: |
           JAR=$(ls build/libs/banco_minecraft_per-*.jar | grep -v sources | head -n1)
           cp "$JAR" banco_minecraft_per.jar
+          # si se vuelve a publicar la misma versión (tag movido), se reemplaza el release anterior
+          gh release delete "$GITHUB_REF_NAME" --yes 2>/dev/null || true
           gh release create "$GITHUB_REF_NAME" \
             banco_minecraft_per.jar \
             banco_minecraft_per-pack.zip \
