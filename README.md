@@ -167,6 +167,16 @@ scripts/generar_texturas.py  # regenera las texturas de partida
 Las texturas son de partida: redibújalas con el mismo nombre de archivo en
 `resourcepack/assets/banco_minecraft_per/textures/item/`.
 
+## Versiones de Minecraft
+
+Cada versión del mod sirve para **una** versión de Minecraft, y lo dice en su número
+(`0.4.2+26.2`). Si se pone en un servidor de otra versión, Fabric lo rechaza al arrancar.
+
+| Versión del mod | Minecraft | Rama |
+|---|---|---|
+| 0.4.2 (y anteriores) | 26.2 | `mc/26.2` (congelada, solo arreglos) |
+| 0.5.0 en adelante | 26.3 | `main` |
+
 ## Publicar una versión
 
 ```bash
@@ -188,12 +198,13 @@ En `docker-compose.yml`, servicio `mc` → `environment`:
 
 ```yaml
       MODS: |
-        https://github.com/Andrexifor/banco_minecraft_per/releases/latest/download/banco_minecraft_per.jar
-      RESOURCE_PACK: https://github.com/Andrexifor/banco_minecraft_per/releases/latest/download/banco_minecraft_per-pack.zip
+        https://github.com/Andrexifor/banco_minecraft_per/releases/download/v${BANCO_VERSION}/banco_minecraft_per.jar
+      RESOURCE_PACK: https://github.com/Andrexifor/banco_minecraft_per/releases/download/v${BANCO_VERSION}/banco_minecraft_per-pack.zip
       RESOURCE_PACK_SHA1: ${RESOURCE_PACK_SHA1}
       RESOURCE_PACK_ENFORCE: "FALSE"
 ```
 
-y en `.env` el SHA1 del release (`RESOURCE_PACK_SHA1=...`). Cada vez que cambies
+y en `.env` la versión del mod que corresponde a `MC_VERSION` (`BANCO_VERSION=0.5.0`
+para 26.3) y el SHA1 de ese release (`RESOURCE_PACK_SHA1=...`). Cada vez que cambies
 texturas, actualiza el SHA1 para que los clientes vuelvan a descargar el pack.
 Luego: `.\scripts\update-mods.ps1`.

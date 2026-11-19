@@ -18,7 +18,8 @@ val permissionsApiVersion: String by project
 val sguiVersion: String by project
 
 base.archivesName.set(modId)
-version = modVersion
+// La versión lleva la de Minecraft: 0.4.2+26.2, 0.5.0+26.3...
+version = "$modVersion+$minecraftVersion"
 group = mavenGroup
 
 repositories {
@@ -50,11 +51,13 @@ tasks {
     processResources {
         inputs.property("version", project.version)
         inputs.property("fabricKotlin", fabricKotlinVersion)
+        inputs.property("minecraft", minecraftVersion)
         filesMatching("fabric.mod.json") {
             expand(
                 mapOf(
                     "version" to project.version,
                     "fabricKotlin" to fabricKotlinVersion,
+                    "minecraft" to minecraftVersion,
                 ),
             )
         }

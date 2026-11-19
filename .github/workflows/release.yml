@@ -32,6 +32,9 @@ jobs:
           sha1sum banco_minecraft_per-pack.zip | cut -d' ' -f1 > banco_minecraft_per-pack.zip.sha1
           echo "SHA1: $(cat banco_minecraft_per-pack.zip.sha1)"
 
+      - name: Leer versión de Minecraft
+        run: echo "MC=$(grep '^minecraftVersion=' gradle.properties | cut -d= -f2)" >> "$GITHUB_ENV"
+
       - name: Crear release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -42,5 +45,5 @@ jobs:
             banco_minecraft_per.jar \
             banco_minecraft_per-pack.zip \
             banco_minecraft_per-pack.zip.sha1 \
-            --title "Banco Minecraft PER $GITHUB_REF_NAME" \
-            --notes "SHA1 del resource pack: $(cat banco_minecraft_per-pack.zip.sha1)"
+            --title "Banco Minecraft PER $GITHUB_REF_NAME (Minecraft $MC)" \
+            --notes "Para Minecraft $MC. SHA1 del resource pack: $(cat banco_minecraft_per-pack.zip.sha1)"
