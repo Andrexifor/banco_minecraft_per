@@ -183,7 +183,7 @@ object Comandos {
         val d = Denominacion.entries.firstOrNull { it.modelo == nombre }
             ?: return error(ctx, "Denominación desconocida: $nombre")
         val cantidad = IntegerArgumentType.getInteger(ctx, "cantidad")
-        jugador.inventory.placeItemBackInInventory(Efectivo.crear(d, cantidad))
+        Inventarios.dar(jugador, Efectivo.crear(d, cantidad))
         BancoMinecraftPer.almacen.registrar("ADMIN_CREAR", jugador.name.string, "-", d.valor * cantidad, detalle = d.modelo)
         ok(ctx, "Creaste $cantidad × ${d.nombreCorto}", avisarAdmins = true)
         return 1

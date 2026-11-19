@@ -28,7 +28,9 @@ jobs:
       - name: Resumen de errores
         if: failure()
         run: |
-          grep -E '^e: |error:|What went wrong|Could not (resolve|find)|> ' build.log \
+          # Primero los errores de Kotlin/Java; si no hay, los de Gradle
+          grep -E '^e: |\.java:[0-9]+: error:' build.log | head -n 40 > errores.txt || true
+          [ -s errores.txt ] || grep -E -A4 'What went wrong|Could not (resolve|find)' build.log \
             | grep -v '^\s*at ' | head -n 40 > errores.txt || true
           [ -s errores.txt ] || tail -n 40 build.log > errores.txt
           i=0

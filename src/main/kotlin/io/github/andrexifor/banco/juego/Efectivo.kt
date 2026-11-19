@@ -93,12 +93,11 @@ object Efectivo {
 
     /** Entrega el desglose en stacks de 64. Asume que ya se verificó el espacio. */
     fun entregar(jugador: ServerPlayer, desglose: Map<Denominacion, Long>) {
-        val inv = jugador.inventory
         for ((d, cantidad) in desglose) {
             var restante = cantidad
             while (restante > 0) {
                 val n = minOf(restante, Desglose.MAX_POR_STACK.toLong()).toInt()
-                inv.placeItemBackInInventory(crear(d, n))
+                Inventarios.dar(jugador, crear(d, n))
                 restante -= n
             }
         }

@@ -139,7 +139,7 @@ object GuiTienda {
         var restante = cantidad
         while (restante > 0) {
             val n = minOf(restante, ejemplo.maxStackSize)
-            j.inventory.placeItemBackInInventory(ItemStack(item, n))
+            Inventarios.dar(j, ItemStack(item, n))
             restante -= n
         }
         val extra = if (impuesto > 0) " (+${Formato.soles(impuesto)} de impuesto)" else ""

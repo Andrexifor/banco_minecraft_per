@@ -129,7 +129,7 @@ object Herrero {
         if (Efectivo.casillasLibres(j) < 1) return Respuesta(false, "Necesitas una casilla libre en el inventario")
         val cobro = Operaciones.cobrar(j, precio, "KIT_COMPRA ${tipo.id}_$usos", impuesto(precio))
         if (!cobro.ok) return cobro
-        j.inventory.placeItemBackInInventory(KitsReparacion.crear(tipo, usos))
+        Inventarios.dar(j, KitsReparacion.crear(tipo, usos))
         return Respuesta(true, "Compraste ${tipo.nombre} ($usos ${if (usos == 1) "uso" else "usos"}). ${cobro.mensaje}")
     }
 
@@ -141,7 +141,7 @@ object Herrero {
         if (Efectivo.casillasLibres(j) < 1) return Respuesta(false, "Necesitas una casilla libre en el inventario")
         val cobro = Operaciones.cobrar(j, l.precio, "LEGENDARIO ${l.id}", impuesto(l.precio))
         if (!cobro.ok) return cobro
-        j.inventory.placeItemBackInInventory(stack)
+        Inventarios.dar(j, stack)
         server.playerList.broadcastSystemMessage(
             Component.literal("${j.name.string} compró ${l.nombre} al Mercader legendario").withStyle(ChatFormatting.GOLD),
             false,

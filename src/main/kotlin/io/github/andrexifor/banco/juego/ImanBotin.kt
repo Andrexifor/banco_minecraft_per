@@ -30,7 +30,7 @@ object ImanBotin {
             it.age == 0 && !it.isRemoved
         }
         for (item in botin) {
-            jugador.inventory.placeItemBackInInventory(item.item.copy())
+            Inventarios.dar(jugador, item.item.copy())
             item.discard()
         }
     }
