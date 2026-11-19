@@ -24,7 +24,8 @@ import net.minecraft.server.level.ServerPlayer
  *
  * Permisos (LuckPerms):
  *   banco_minecraft_per.saldo.otros  -> /saldo <jugador>                         (por defecto: op 2)
- *   banco_minecraft_per.admin        -> /banco dar|quitar|fijar|crear|recargar|npc (por defecto: op 3)
+ *   banco_minecraft_per.admin        -> /banco dar|quitar|fijar|crear|recargar|npc|zonas (por defecto: op 3)
+ *   banco_minecraft_per.zonas.editar -> construir dentro de las zonas protegidas (por defecto: op 2)
  */
 object Comandos {
     private const val PERM = BancoMinecraftPer.MOD_ID
@@ -98,6 +99,7 @@ object Comandos {
                         .then(literal("asignar").then(argumentoTipoNpc().executes { crearNpc(it, crearAldeano = false) }))
                         .then(literal("quitar").executes { quitarNpc(it) }),
                 )
+                .then(literal("zonas").requires(admin).executes { zonas(it) })
                 .then(literal("recargar").requires(admin).executes { recargar(it) }),
         )
     }
@@ -220,9 +222,27 @@ object Comandos {
         ok(
             ctx,
             "Recargado: ${BancoMinecraftPer.catalogo.productos.size} productos, " +
-                "${BancoMinecraftPer.legendarios.legendarios.size} legendarios y precios del herrero",
+                "${BancoMinecraftPer.legendarios.legendarios.size} legendarios, precios del herrero y " +
+                "${BancoMinecraftPer.zonas.zonas.orEmpty().size} zonas protegidas",
             avisarAdmins = true,
         )
+        return 1
+    }
+
+    private fun zonas(ctx: CommandContext<CommandSourceStack>): Int {
+        val lista = BancoMinecraftPer.zonas.zonas.orEmpty()
+        if (lista.isEmpty()) return error(ctx, "No hay zonas protegidas (config/banco_minecraft_per/zonas.json)")
+        val jugador = ctx.source.player
+        val actual = jugador?.let { Proteccion.zonaEn(it.level(), it.blockPosition()) }
+        val texto = buildString {
+            append("Zonas protegidas (solo op construye):")
+            for (z in lista) {
+                append("\n- ${z.nombre} [${z.dimension}] ${z.x1},${z.y1},${z.z1} -> ${z.x2},${z.y2},${z.z2}")
+                if (!z.activa) append(" (desactivada)")
+                if (z == actual) append("  <- estás aquí")
+            }
+        }
+        ok(ctx, texto)
         return 1
     }
 

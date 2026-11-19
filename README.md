@@ -105,6 +105,29 @@ Con LuckPerms, dáselos al grupo admin:
 `lp group admin permission set banco_minecraft_per.admin true`
 (el grupo admin del servidor ya tiene `*`).
 
+## Zonas protegidas
+
+Dentro de una zona protegida **solo los op** (nivel 2 o más, o quien tenga el permiso
+`banco_minecraft_per.zonas.editar`) pueden romper o poner bloques, abrir cofres, usar cubetas
+o tocar los soportes de armadura. Los demás pueden caminar, hablar con los aldeanos del banco
+y usar el portal. Las explosiones (creepers, TNT, ghasts) no rompen bloques ahí.
+
+Se configuran en `config/banco_minecraft_per/zonas.json` (las esquinas, en cualquier orden):
+
+```json
+{
+  "zonas": [
+    { "nombre": "plaza_spawn", "dimension": "overworld", "x1": 76, "y1": -64, "z1": 44,
+      "x2": 116, "y2": 320, "z2": 84, "activa": true },
+    { "nombre": "sala_portal_nether", "dimension": "the_nether", "x1": 4, "y1": 76, "z1": -1,
+      "x2": 56, "y2": 127, "z2": 11, "activa": true }
+  ]
+}
+```
+
+Por defecto protege la plaza inca del spawn y la sala del portal en el Nether (con su túnel).
+`/banco zonas` lista las zonas y te dice si estás dentro de una; `/banco recargar` aplica cambios.
+
 ## Archivos en el servidor
 
 | Ruta (dentro de `/data`) | Contenido |

@@ -3,7 +3,8 @@
   "package": "io.github.andrexifor.banco.mixin",
   "compatibilityLevel": "JAVA_25",
   "mixins": [
-    "AnvilMenuMixin"
+    "AnvilMenuMixin",
+    "ExplosionMixin"
   ],
   "injectors": {
     "defaultRequire": 0

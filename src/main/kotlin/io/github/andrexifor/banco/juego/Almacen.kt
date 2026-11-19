@@ -7,6 +7,7 @@ import io.github.andrexifor.banco.nucleo.Banco
 import io.github.andrexifor.banco.nucleo.Catalogo
 import io.github.andrexifor.banco.nucleo.CatalogoLegendarios
 import io.github.andrexifor.banco.nucleo.ConfigHerrero
+import io.github.andrexifor.banco.nucleo.ConfigZonas
 import io.github.andrexifor.banco.nucleo.Configuracion
 import io.github.andrexifor.banco.nucleo.Cuenta
 import java.nio.charset.StandardCharsets
@@ -33,6 +34,7 @@ class Almacen(private val dirConfig: Path, private val dirDatos: Path) {
     private val archivoNpcs: Path get() = dirDatos.resolve("npcs.json")
     private val archivoLegendarios: Path get() = dirConfig.resolve("legendarios.json")
     private val archivoHerrero: Path get() = dirConfig.resolve("herrero.json")
+    private val archivoZonas: Path get() = dirConfig.resolve("zonas.json")
 
     fun cargarConfiguracion(): Configuracion {
         Files.createDirectories(dirConfig)
@@ -79,6 +81,17 @@ class Almacen(private val dirConfig: Path, private val dirDatos: Path) {
         }.normalizada()
         // Reescribe para que aparezcan los campos nuevos de cada versión
         escribirAtomico(archivoHerrero, gson.toJson(leida))
+        return leida
+    }
+
+    fun cargarZonas(): ConfigZonas {
+        Files.createDirectories(dirConfig)
+        val leida = if (Files.exists(archivoZonas)) {
+            (gson.fromJson(Files.readString(archivoZonas, StandardCharsets.UTF_8), ConfigZonas::class.java) ?: ConfigZonas())
+        } else {
+            ConfigZonas()
+        }.normalizada()
+        escribirAtomico(archivoZonas, gson.toJson(leida))
         return leida
     }
 
