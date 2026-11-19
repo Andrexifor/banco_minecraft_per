@@ -138,18 +138,26 @@ Si un ítem está mal escrito, no aparece en el menú (y sale un aviso en el log
 - **Criador de animales** (tipo `criador`, catálogo `animales.json`), todos domesticados y listos para usar:
   - **Puyu del Inti:** ghast feliz con el doble de velocidad de vuelo y el **Arnés del Inti** (aspecto propio).
   - **Caballo de paso:** rápido, buen saltador, ensillado y con **Armadura inca** (aspecto propio).
-  - **Caballo esqueleto:** 40 de vida y más rápido que cualquier caballo natural.
-  - **Caballo zombi:** igual de rápido y **camina sobre el agua** (el agua bajo sus patas se vuelve hielo
-    escarchado mientras alguien lo monta y se derrite sola).
-  - **Mula de carga:** ensillada y rápida; **Shift + clic derecho** abre una **alforja de 54 casillas** guardada
-    en la mula (si muere, la carga cae al suelo).
+  - **Caballo esqueleto:** 40 de vida, más rápido que cualquier caballo natural y con la **Montura del
+    Ukhu Pacha** (aspecto propio).
+  - **Caballo zombi:** igual de rápido, **camina sobre el agua** (el agua bajo sus patas se vuelve hielo
+    escarchado mientras alguien lo monta y se derrite sola) y lleva la **Montura del Titicaca**.
+    Esqueleto y zombi tienen **resistencia al fuego infinita** (el sol no los quema).
+  - **Mula de carga:** rápida, con su **Aguayo de carga**; **Shift + clic derecho** abre una **alforja de
+    54 casillas** (cofre doble) guardada en la mula (si muere, la carga cae al suelo).
+
+  Cada 5 segundos el mod revisa estas tres monturas: renueva la resistencia al fuego y cambia una silla
+  simple por la montura propia (así los animales comprados antes también la reciben).
   - **Alpaquita:** alpaca cría que nunca crece.
 
   **Aspecto propio sin mods:** Minecraft no permite texturas por animal, pero sí por **equipo**. El arnés y la
   armadura llevan un componente `equippable` con `asset_id` propio
   (`resourcepack/assets/banco_minecraft_per/equipment/*.json`), así que solo el animal que los lleva puestos
-  se ve distinto. Las texturas salen de `scripts/generar_equipo.py`, que usa las texturas vanilla del jar del
-  cliente solo como plantilla de forma.
+  se ve distinto. Las monturas usan el mismo truco con `slot:"saddle"` (capas `mule_saddle`,
+  `zombie_horse_saddle`, `skeleton_horse_saddle`). Las texturas salen de `scripts/generar_equipo.py` y
+  `scripts/generar_monturas.py`, que usan las texturas vanilla solo como plantilla de forma.
+- **Inti de la plaza:** `scripts/generar_inti.py` dibuja el sol inca con rostro (`item_model`
+  `banco_minecraft_per:inti_sol`); el datapack de la plaza lo muestra gigante con un `item_display`.
 - **Mercado negro (Nether):** se desbloquea **para siempre** la primera vez que el jugador lleva puesto
   el set completo de armadura legendaria (logro "Los dioses te ven de más cerca"). La puerta sellada
   (`puerta_negra`) lleva adentro y la salida (`salida_negra`) devuelve a la sala del portal; los destinos

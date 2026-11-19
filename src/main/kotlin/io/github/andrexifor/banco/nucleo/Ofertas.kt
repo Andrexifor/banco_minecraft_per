@@ -89,6 +89,7 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
 
         private const val SILLA = "saddle:{id:\"minecraft:saddle\",count:1}"
         const val NOMBRE_ZOMBI = "Caballo zombi"
+        const val NOMBRE_ESQUELETO = "Caballo esqueleto"
         const val NOMBRE_MULA = "Mula de carga"
 
         /** Velocidad de los caballos especiales: por encima del máximo natural (0.3375). */
@@ -110,6 +111,25 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
         private val ARMADURA_INCA = equipoCustom(
             "golden_horse_armor", "armadura_inca", "minecraft:horse", "minecraft:item.armor.equip_horse", "Armadura inca",
         )
+
+        /**
+         * Montura (silla) con aspecto propio: el resource pack la dibuja con las capas
+         * <entidad>_saddle de assets/banco_minecraft_per/equipment/<asset>.json.
+         */
+        private fun montura(asset: String, entidad: String, nombre: String, color: String) =
+            "{id:\"minecraft:saddle\",count:1,components:{" +
+                "\"minecraft:equippable\":{slot:\"saddle\",asset_id:\"banco_minecraft_per:$asset\"," +
+                "allowed_entities:\"minecraft:$entidad\",equip_sound:\"minecraft:entity.horse.saddle\",can_be_sheared:true}," +
+                "\"minecraft:custom_name\":{text:\"$nombre\",color:\"$color\",italic:false}}}"
+
+        /** Monturas propias en formato /give (Monturas.kt las usa para cambiar las sillas simples). */
+        val MONTURA_ESQUELETO = montura("montura_ukhu_pacha", "skeleton_horse", "Montura del Ukhu Pacha", "dark_purple")
+        val MONTURA_ZOMBI = montura("montura_titicaca", "zombie_horse", "Montura del Titicaca", "aqua")
+        val MONTURA_MULA = montura("aguayo_de_carga", "mule", "Aguayo de carga", "gold")
+
+        /** Resistencia al fuego infinita: los caballos no muertos no se queman con el sol. */
+        private const val SIN_FUEGO =
+            "active_effects:[{id:\"minecraft:fire_resistance\",duration:-1,amplifier:0b,show_particles:0b,show_icon:0b}]"
 
         fun animalesPorDefecto() = CatalogoOfertas(
             mutableListOf(
@@ -146,12 +166,14 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
                     huevo(
                         "skeleton_horse_spawn_egg",
                         animal(
-                            "skeleton_horse", "Caballo esqueleto", "gray",
+                            "skeleton_horse", NOMBRE_ESQUELETO, "gray",
                             "Health:40f,attributes:[{id:\"minecraft:max_health\",base:40d}," +
-                                "{id:\"minecraft:movement_speed\",base:${VELOCIDAD_ESPECIAL}d}],equipment:{$SILLA}",
+                                "{id:\"minecraft:movement_speed\",base:${VELOCIDAD_ESPECIAL}d}],$SIN_FUEGO," +
+                                "equipment:{saddle:$MONTURA_ESQUELETO}",
                         ),
                         "Huevo de caballo esqueleto", "gray",
-                        "40 de vida (el doble de un caballo)", "Más rápido que cualquier caballo; ensillado",
+                        "40 de vida (el doble de un caballo)", "Más rápido que cualquier caballo",
+                        "Con la Montura del Ukhu Pacha; no le afecta el fuego",
                     ),
                     precio = 400_000, descripcion = "El doble de vida y más rápido que cualquier caballo", anunciar = false,
                 ),
@@ -162,10 +184,12 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
                         animal(
                             "zombie_horse", NOMBRE_ZOMBI, "dark_green",
                             "attributes:[{id:\"minecraft:movement_speed\",base:${VELOCIDAD_ESPECIAL}d}," +
-                                "{id:\"minecraft:water_movement_efficiency\",base:1d}],equipment:{$SILLA}",
+                                "{id:\"minecraft:water_movement_efficiency\",base:1d}],$SIN_FUEGO," +
+                                "equipment:{saddle:$MONTURA_ZOMBI}",
                         ),
                         "Huevo de caballo zombi", "dark_green",
-                        "Camina sobre el agua (la congela al pasar)", "Más rápido que cualquier caballo; ensillado",
+                        "Camina sobre el agua (la congela al pasar)", "Más rápido que cualquier caballo",
+                        "Con la Montura del Titicaca; el sol no lo quema",
                     ),
                     precio = 350_000, descripcion = "Camina sobre el agua y es más rápido que cualquier caballo", anunciar = false,
                 ),
@@ -175,10 +199,10 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
                         "mule_spawn_egg",
                         animal(
                             "mule", NOMBRE_MULA, "gold",
-                            "ChestedHorse:1b,attributes:[{id:\"minecraft:movement_speed\",base:0.3d}],equipment:{$SILLA}",
+                            "ChestedHorse:1b,attributes:[{id:\"minecraft:movement_speed\",base:0.3d}],equipment:{saddle:$MONTURA_MULA}",
                         ),
                         "Huevo de mula de carga", "gold",
-                        "Se maneja como un caballo; ya ensillada", "Shift + clic derecho: alforja de 54 casillas",
+                        "Se maneja como un caballo; con su aguayo de carga", "Shift + clic derecho: alforja de 54 casillas",
                     ),
                     precio = 300_000, descripcion = "Montable, rápida y con alforja de 54 casillas", anunciar = false,
                 ),

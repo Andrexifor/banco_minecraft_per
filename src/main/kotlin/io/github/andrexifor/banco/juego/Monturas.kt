@@ -10,20 +10,29 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import net.fabricmc.fabric.api.event.player.UseEntityCallback
 import net.minecraft.ChatFormatting
 import net.minecraft.core.BlockPos
+import net.minecraft.core.component.DataComponents
+import net.minecraft.nbt.NbtOps
+import net.minecraft.nbt.TagParser
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionResult
+import net.minecraft.world.effect.MobEffectInstance
+import net.minecraft.world.effect.MobEffects
 import net.minecraft.world.SimpleContainer
 import net.minecraft.world.SimpleMenuProvider
 import net.minecraft.world.entity.ContainerUser
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.EquipmentSlot
+import net.minecraft.world.entity.animal.equine.AbstractHorse
 import net.minecraft.world.entity.animal.equine.Mule
+import net.minecraft.world.entity.animal.equine.SkeletonHorse
 import net.minecraft.world.entity.animal.equine.ZombieHorse
 import net.minecraft.world.entity.item.ItemEntity
 import net.minecraft.world.inventory.ChestMenu
 import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.Items
 import net.minecraft.world.level.block.Blocks
 import kotlin.random.Random
 
@@ -33,6 +42,8 @@ import kotlin.random.Random
  *    escarchado (como Paso helado) y se derrite sola; así corre y salta sobre el agua.
  *  - Mula de carga: Shift + clic derecho abre una alforja de 54 casillas guardada en la mula
  *    (si la mula muere, la carga cae al suelo).
+ *  - Cada 5 s: los caballos zombi y esqueleto del criador mantienen resistencia al fuego
+ *    infinita, y las sillas simples de las tres monturas pasan a su montura con aspecto propio.
  */
 object Monturas {
     private const val RADIO_HIELO = 3
@@ -51,7 +62,10 @@ object Monturas {
         e is Mule && e.customName?.string == CatalogoOfertas.NOMBRE_MULA
 
     fun registrarEventos() {
-        ServerTickEvents.END_SERVER_TICK.register { servidor -> congelarBajoZombis(servidor) }
+        ServerTickEvents.END_SERVER_TICK.register { servidor ->
+            congelarBajoZombis(servidor)
+            if (servidor.tickCount % 100 == 0) mantenerMonturas(servidor)
+        }
 
         UseEntityCallback.EVENT.register { jugador, _, _, entidad, _ ->
             if (jugador is ServerPlayer && jugador.isShiftKeyDown && esMulaDeCarga(entidad)) {
@@ -100,6 +114,46 @@ object Monturas {
         if (Proteccion.zonaEn(nivel, pos) != null) return
         nivel.setBlockAndUpdate(pos, Blocks.FROSTED_ICE.defaultBlockState())
         nivel.scheduleTick(pos, Blocks.FROSTED_ICE, Random.nextInt(60, 120))
+    }
+
+    // ---------- fuego y monturas propias ----------
+
+    private val monturas = HashMap<String, ItemStack>()
+
+    private fun montura(servidor: MinecraftServer, texto: String): ItemStack? =
+        monturas.getOrPut(texto) {
+            try {
+                // el texto es un ítem en SNBT {id,count,components}: se lee con el codec de ItemStack
+                ItemStack.CODEC.parse(
+                    servidor.registryAccess().createSerializationContext(NbtOps.INSTANCE),
+                    TagParser.parseCompoundFully(texto),
+                ).getOrThrow()
+            } catch (e: Exception) {
+                BancoMinecraftPer.LOGGER.warn("Montura mal escrita: {}", e.message)
+                ItemStack.EMPTY
+            }
+        }.takeIf { !it.isEmpty }
+
+    private fun mantenerMonturas(servidor: MinecraftServer) {
+        for (nivel in servidor.allLevels) {
+            for (e in nivel.allEntities) {
+                if (e !is AbstractHorse) continue
+                val nombre = e.customName?.string ?: continue
+                val (sinFuego, textoMontura) = when {
+                    e is ZombieHorse && nombre == CatalogoOfertas.NOMBRE_ZOMBI -> true to CatalogoOfertas.MONTURA_ZOMBI
+                    e is SkeletonHorse && nombre == CatalogoOfertas.NOMBRE_ESQUELETO -> true to CatalogoOfertas.MONTURA_ESQUELETO
+                    e is Mule && nombre == CatalogoOfertas.NOMBRE_MULA -> false to CatalogoOfertas.MONTURA_MULA
+                    else -> continue
+                }
+                if (sinFuego && !e.hasEffect(MobEffects.FIRE_RESISTANCE)) {
+                    e.addEffect(MobEffectInstance(MobEffects.FIRE_RESISTANCE, MobEffectInstance.INFINITE_DURATION, 0, false, false, false))
+                }
+                val silla = e.getItemBySlot(EquipmentSlot.SADDLE)
+                if (silla.`is`(Items.SADDLE) && !silla.has(DataComponents.CUSTOM_NAME)) {
+                    montura(servidor, textoMontura)?.let { e.setItemSlot(EquipmentSlot.SADDLE, it.copy()) }
+                }
+            }
+        }
     }
 
     // ---------- alforja de la mula ----------
