@@ -38,8 +38,17 @@ class ZonasTest {
     }
 
     @Test
-    fun `por defecto protege la plaza y la sala del nether`() {
+    fun `por defecto vienen apagadas`() {
         val c = ConfigZonas().normalizada()
+        assertNull(c.buscar("overworld", 96, 69, 64))
+        assertFalse(c.cambiar("no_existe", true))
+    }
+
+    @Test
+    fun `al activarlas protegen la plaza y la sala del nether`() {
+        val c = ConfigZonas().normalizada()
+        assertTrue(c.cambiar("plaza_spawn", true))
+        assertTrue(c.cambiar("sala_portal_nether", true))
         assertEquals("plaza_spawn", c.buscar("overworld", 96, 69, 64)?.nombre)
         assertEquals("sala_portal_nether", c.buscar("the_nether", 11, 117, 5)?.nombre)
         assertEquals("sala_portal_nether", c.buscar("the_nether", 40, 100, 5)?.nombre) // túnel

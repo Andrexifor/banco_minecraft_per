@@ -106,7 +106,12 @@ object Comandos {
                             ),
                         ),
                 )
-                .then(literal("zonas").requires(admin).executes { zonas(it) })
+                .then(
+                    literal("zonas").requires(Permissions.require("$PERM.admin", 2))
+                        .executes { zonas(it) }
+                        .then(literal("activar").then(argumentoZona().executes { cambiarZona(it, true) }))
+                        .then(literal("desactivar").then(argumentoZona().executes { cambiarZona(it, false) })),
+                )
                 .then(literal("recargar").requires(admin).executes { recargar(it) }),
         )
     }
@@ -243,6 +248,21 @@ object Comandos {
         if (n == 0) return error(ctx, "No se encontró ninguna entidad para ${tipo.nombre}")
         ok(ctx, "${tipo.nombre}: $n NPC registrado(s)")
         return n
+    }
+
+    private fun argumentoZona() =
+        argument("nombre", StringArgumentType.word()).suggests { _, b ->
+            BancoMinecraftPer.zonas.zonas.orEmpty().forEach { z -> b.suggest(z.nombre) }
+            b.buildFuture()
+        }
+
+    private fun cambiarZona(ctx: CommandContext<CommandSourceStack>, activa: Boolean): Int {
+        val nombre = StringArgumentType.getString(ctx, "nombre")
+        val zonas = BancoMinecraftPer.zonas
+        if (!zonas.cambiar(nombre, activa)) return error(ctx, "No existe la zona $nombre (mira /banco zonas)")
+        BancoMinecraftPer.almacen.guardarZonas(zonas)
+        ok(ctx, "Zona $nombre ${if (activa) "activada" else "desactivada"}", avisarAdmins = true)
+        return 1
     }
 
     private fun zonas(ctx: CommandContext<CommandSourceStack>): Int {

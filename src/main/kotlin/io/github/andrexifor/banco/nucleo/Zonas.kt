@@ -37,14 +37,24 @@ data class ConfigZonas(
         },
     )
 
+    /** Activa o desactiva por nombre. Devuelve false si no existe. */
+    fun cambiar(nombre: String, activa: Boolean): Boolean {
+        val zona = zonas.orEmpty().firstOrNull { it.nombre == nombre } ?: return false
+        zona.activa = activa
+        return true
+    }
+
     fun buscar(dim: String, x: Int, y: Int, z: Int, margen: Int = 0): Zona? =
         zonas.orEmpty().firstOrNull { it.contiene(dim, x, y, z, margen) }
 
     companion object {
-        /** Plaza inca del spawn (datapack plaza_inca) y sala del portal en el Nether con su túnel. */
+        /**
+         * Plaza inca del spawn (datapack plaza_inca) y sala del portal en el Nether con su túnel.
+         * Vienen apagadas: las enciende /function plaza_inca:construir con /banco zonas activar.
+         */
         fun porDefecto(): List<Zona> = listOf(
-            Zona("plaza_spawn", "overworld", 76, -64, 44, 116, 320, 84),
-            Zona("sala_portal_nether", "the_nether", 4, 76, -1, 56, 127, 11),
+            Zona("plaza_spawn", "overworld", 76, -64, 44, 116, 320, 84, activa = false),
+            Zona("sala_portal_nether", "the_nether", 4, 76, -1, 56, 127, 11, activa = false),
         )
     }
 }

@@ -143,7 +143,9 @@ Además, los creepers, la TNT y las bolas de fuego que entran a una zona (o a 4 
 desaparecen antes de explotar, y si igual hay una explosión, no rompe bloques de la zona
 (en el log sale "Explosión en zona protegida").
 
-Por defecto protege la plaza inca del spawn y la sala del portal en el Nether (con su túnel).
+Trae dos zonas **apagadas**: la plaza inca del spawn y la sala del portal en el Nether (con su túnel).
+Las enciende `/function plaza_inca:construir` (datapack de `serv_minecraft`) al construir la plaza.
+A mano: `/banco zonas activar <nombre>` o `/banco zonas desactivar <nombre>` (op 2, sirve en funciones).
 `/banco zonas` lista las zonas y te dice si estás dentro de una; `/banco recargar` aplica cambios.
 
 ## Archivos en el servidor

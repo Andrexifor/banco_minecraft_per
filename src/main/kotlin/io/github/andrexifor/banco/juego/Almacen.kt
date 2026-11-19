@@ -95,6 +95,11 @@ class Almacen(private val dirConfig: Path, private val dirDatos: Path) {
         return leida
     }
 
+    fun guardarZonas(zonas: ConfigZonas) {
+        Files.createDirectories(dirConfig)
+        escribirAtomico(archivoZonas, gson.toJson(zonas))
+    }
+
     /** NPC del banco: UUID de la entidad -> tipo ("banquero", "tendero", "herrero", "mercader"). */
     fun cargarNpcs(): MutableMap<UUID, String> {
         val npcs = linkedMapOf<UUID, String>()
