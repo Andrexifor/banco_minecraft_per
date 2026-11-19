@@ -135,8 +135,11 @@ Si un ítem está mal escrito, no aparece en el menú (y sale un aviso en el log
 
 - **Mercader de bromas:** Vara de la Verdad (Empuje V y 2 % de rayo al golpear), papa legendaria
   y corona del rey del barrio.
-- **Criador de animales** (tipo `criador`, catálogo `animales.json`): huevo de **Puyu del Inti** (ghast feliz
-  con el doble de velocidad de vuelo), alpaca y llama andina ya domesticadas, y caballo de paso.
+- **Criador de animales** (tipo `criador`, catálogo `animales.json`): huevos de
+  **Puyu del Inti** (ghast feliz, el doble de velocidad de vuelo, con arnés), **caballo de paso** (rápido, blanco
+  con manchas, armadura de oro), **caballo esqueleto** (40 de vida), **caballo zombi** (nada a toda velocidad),
+  **alpaca** (más pequeña, con manta) y **llama andina** (carga máxima). Los caballos vienen ensillados.
+  Las llamas y alpacas no se pueden manejar (límite de Minecraft): se guían con soga y llevan cofre.
 - **Mercado negro (Nether):** se desbloquea **para siempre** la primera vez que el jugador lleva puesto
   el set completo de armadura legendaria (logro "Los dioses te ven de más cerca"). La puerta sellada
   (`puerta_negra`) lleva adentro y la salida (`salida_negra`) devuelve a la sala del portal; los destinos
