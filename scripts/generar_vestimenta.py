@@ -29,13 +29,13 @@ def mezcla(c1, c2, t):
 NEGRO = hexc("1a1418")
 UNKUS = {
     "banquero": dict(tela=hexc("b3261e"), tela_s=hexc("7a1712"), banda=[hexc("f2b822"), NEGRO, hexc("ece6d6"), hexc("2fb5a8")],
-                     borde=hexc("f2b822"), brillo=hexc("ffd84a")),
+                     borde=hexc("f2b822"), brillo=hexc("ffd84a"), cuello=hexc("b07a14")),
     "tendero": dict(tela=hexc("2e7d4f"), tela_s=hexc("1a4d30"), banda=[hexc("f5d742"), NEGRO, hexc("c2185b"), hexc("ece6d6")],
-                    borde=hexc("f5d742"), brillo=hexc("5cff9d")),
+                    borde=hexc("f5d742"), brillo=hexc("5cff9d"), cuello=hexc("1f7a4a")),
     "herrero": dict(tela=hexc("3a3f48"), tela_s=hexc("22262c"), banda=[hexc("ff6a00"), NEGRO, hexc("c9d2dc"), hexc("ffb347")],
-                    borde=hexc("ff6a00"), brillo=hexc("ff8a2a")),
+                    borde=hexc("ff6a00"), brillo=hexc("ff8a2a"), cuello=hexc("4b5563")),
     "mercader": dict(tela=hexc("2a1a5e"), tela_s=hexc("170d38"), banda=[hexc("8ef3ff"), NEGRO, hexc("d9a8ff"), hexc("ffffff")],
-                     borde=hexc("8ef3ff"), brillo=hexc("b06bff"), estrellas=True),
+                     borde=hexc("8ef3ff"), brillo=hexc("b06bff"), cuello=hexc("3a1670"), estrellas=True),
 }
 
 
@@ -55,8 +55,9 @@ def unku(t):
             c = t["tela"] if (x + y // 3) % 7 else t["tela_s"]
             if abs(dx) > media - 1.5:
                 c = t["borde"]
-            # cuello en V
+            # cuello en V: se ve el cuello del ser (mismo material que su máscara), no un hueco
             if y < 10 and abs(dx) < 6 - y * 0.6:
+                px[x, y] = t["cuello"] if (y + x) % 5 else mezcla(t["cuello"], hexc("000000"), 0.25)
                 continue
             if y < 11 and abs(abs(dx) - (6 - y * 0.6)) < 1:
                 c = t["borde"]
@@ -69,13 +70,13 @@ def unku(t):
                 c = t["borde"]
             if t.get("estrellas") and (x * 7 + y * 11) % 37 == 0 and not 26 <= y <= 33:
                 c = hexc("ffffff")
-            # el ruedo se deshace en hilos de luz (no hay nadie dentro)
-            if y >= 46:
-                fade = (y - 46) / 17
-                if (x * 3 + y) % 5 < int(fade * 6):
+            # ruedo con borde y flecos (como un unku de verdad; el brillo del ser solo en las puntas)
+            if y in (56, 57):
+                c = t["borde"]
+            if y >= 58:
+                if x % 2:
                     continue
-                c = mezcla(c, t["brillo"], fade)
-                c = c[:3] + (int(255 * (1 - fade * 0.75)),)
+                c = t["borde"] if y < 62 else t["brillo"]
             px[x, y] = c
     return img
 

@@ -62,7 +62,7 @@ def unku(img):
             "north": {"uv": uv(x1p, y0, x0p, y1), "texture": "#unku"},
             "east": {"uv": uv(borde_d, y0, borde_d + 1, y1), "texture": "#unku"},
             "west": {"uv": uv(borde_i, y0, borde_i + 1, y1), "texture": "#unku"},
-            "up": {"uv": uv(x0p, y0 + 3, x1p, y0 + 4), "texture": "#unku"},
+            "up": {"uv": uv(x0p, 14, x1p, 15), "texture": "#unku"},
         }
         elementos.append(caja([x0, bot, 5], [x1, top, Z_FRENTE], caras))
     return elementos
@@ -81,6 +81,21 @@ def capa(px0, py0, px1, py1, z0, z1):
         "down": {"uv": uv(px0, py1 - 1, px1, py1), "texture": "#mascara"},
     }
     return caja([x0, bot, z0], [x1, top, z1], caras)
+
+
+def cuerpo_oculto():
+    """Cuello y piernas: dan forma humana. Las piernas quedan casi ocultas tras el mostrador."""
+    tela = uv(20, 40, 24, 44)          # trozo de la tela del unku
+    piel = uv(21, 43, 25, 47)          # mejilla de la máscara: el "material" del ser
+    def bloque(desde, hasta, cara, tex):
+        return caja(desde, hasta, {f: {"uv": cara, "texture": tex} for f in ("north", "south", "east", "west", "up", "down")})
+    return [
+        bloque([6, 17.5, 6.5], [10, 21, 9.5], piel, "#mascara"),          # cuello
+        bloque([4.5, -9, 6.5], [7.5, -4, 9.5], tela, "#unku"),            # pierna izquierda
+        bloque([8.5, -9, 6.5], [11.5, -4, 9.5], tela, "#unku"),           # pierna derecha
+        bloque([4.25, -10, 6], [7.75, -9, 10.5], piel, "#mascara"),       # pie izquierdo
+        bloque([8.25, -10, 6], [11.75, -9, 10.5], piel, "#mascara"),      # pie derecho
+    ]
 
 
 def mascara():
@@ -105,7 +120,7 @@ def main():
             "textures": {"unku": f"banco_minecraft_per:item/unku_{ser}",
                          "mascara": f"banco_minecraft_per:item/mascara_{ser}",
                          "particle": f"banco_minecraft_per:item/unku_{ser}"},
-            "elements": unku(img) + mascara(),
+            "elements": unku(img) + mascara() + cuerpo_oculto(),
             "display": {"fixed": {"rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": [1, 1, 1]}},
         }
         with open(os.path.join(NS, "models", "item", f"figura_{ser}.json"), "w", encoding="utf-8") as fh:
