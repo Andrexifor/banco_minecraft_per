@@ -18,7 +18,8 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.SimpleContainer
 import net.minecraft.world.entity.Entity
-import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.animal.equine.Mule
+import net.minecraft.world.entity.animal.equine.ZombieHorse
 import net.minecraft.world.entity.item.ItemEntity
 import net.minecraft.world.inventory.MenuType
 import net.minecraft.world.inventory.Slot
@@ -44,10 +45,10 @@ object Monturas {
     )
 
     private fun esZombiAcuatico(e: Entity?): Boolean =
-        e != null && e.type == EntityType.ZOMBIE_HORSE && e.customName?.string == CatalogoOfertas.NOMBRE_ZOMBI
+        e != null && e is ZombieHorse && e.customName?.string == CatalogoOfertas.NOMBRE_ZOMBI
 
     private fun esMulaDeCarga(e: Entity): Boolean =
-        e.type == EntityType.MULE && e.customName?.string == CatalogoOfertas.NOMBRE_MULA
+        e is Mule && e.customName?.string == CatalogoOfertas.NOMBRE_MULA
 
     fun registrarEventos() {
         ServerTickEvents.END_SERVER_TICK.register { servidor -> congelarBajoZombis(servidor) }
@@ -108,13 +109,13 @@ object Monturas {
         val contenedor = SimpleContainer(CASILLAS_ALFORJA)
         guardado.take(CASILLAS_ALFORJA).forEachIndexed { i, s -> contenedor.setItem(i, s.copy()) }
         val gui = object : SimpleGui(MenuType.GENERIC_9x6, j, false) {
-            override fun onClose() {
+            override fun onPlayerClose(success: Boolean) {
                 val lista = (0 until CASILLAS_ALFORJA).map { contenedor.getItem(it).copy() }
                 if (lista.all { it.isEmpty }) mula.removeAttached(ALFORJA) else mula.setAttached(ALFORJA, lista)
             }
         }
         gui.setTitle(texto("Alforja de ${mula.customName?.string ?: "la mula"}", ChatFormatting.GOLD))
-        for (i in 0 until CASILLAS_ALFORJA) gui.setSlotRedirect(i, Slot(contenedor, i, 0, 0))
+        for (i in 0 until CASILLAS_ALFORJA) gui.setRemoteSlot(i, Slot(contenedor, i, 0, 0))
         gui.open()
         BancoMinecraftPer.LOGGER.debug("Alforja abierta por {}", j.name.string)
     }
