@@ -2,7 +2,7 @@ name: Compilar y testear
 
 on:
   push:
-    branches: [main]
+    branches: [main, "mc/**"]
   pull_request:
 
 jobs:
