@@ -18,7 +18,7 @@ import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.level.Level
 
 /**
- * Logros del servidor (data/banco_minecraft_per/advancement/*.json dentro del jar).
+ * Logros del servidor (data/banco_minecraft_per/advancement, un JSON por logro, dentro del jar).
  * Todos usan el criterio "minecraft:impossible": los da el mod con /advancement grant,
  * así se ven como logros de Minecraft (aviso en pantalla + chat) sin que el cliente instale nada.
  * Lo que el mod recuerda de cada jugador va en banco_minecraft_per/jugadores.json.
