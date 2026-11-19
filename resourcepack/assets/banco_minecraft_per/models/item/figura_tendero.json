@@ -3,8 +3,8 @@
   "unku": "banco_minecraft_per:item/unku_tendero",
   "mascara": "banco_minecraft_per:item/mascara_tendero",
   "arma": "banco_minecraft_per:item/arma_tendero",
-  "tiana": "minecraft:block/gold_block",
-  "base": "minecraft:block/chiseled_red_sandstone",
+  "tiana": "banco_minecraft_per:item/tiana_oro",
+  "base": "banco_minecraft_per:item/tiana_base",
   "particle": "banco_minecraft_per:item/unku_tendero"
  },
  "elements": [

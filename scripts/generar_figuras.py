@@ -196,15 +196,31 @@ def guardar(clave, texturas, elementos):
         fh.write("\n")
 
 
+def texturas_tiana(tex):
+    """Asiento de oro con borde y base de piedra rojiza con grecas (16x16)."""
+    oro = Image.new("RGBA", (16, 16))
+    base = Image.new("RGBA", (16, 16))
+    for y in range(16):
+        for x in range(16):
+            borde = x in (0, 15) or y in (0, 15)
+            oro.putpixel((x, y), (138, 90, 12, 255) if borde else (255, 226, 122, 255) if (x + y) % 7 == 0 else (244, 196, 48, 255))
+            greca = (y in (3, 12)) or (4 <= y <= 11 and ((x // 2 + (y - 4) // 2) % 4 == 0))
+            base.putpixel((x, y), (90, 40, 22, 255) if borde else (242, 184, 34, 255) if greca else (168, 74, 40, 255))
+    oro.save(os.path.join(tex, "tiana_oro.png"))
+    base.save(os.path.join(tex, "tiana_base.png"))
+
+
 def main():
     tex = os.path.join(NS, "textures", "item")
+    texturas_tiana(tex)
     for ser in SERES:
         img = Image.open(os.path.join(tex, f"unku_{ser}.png")).convert("RGBA")
         texturas = {"unku": f"banco_minecraft_per:item/unku_{ser}",
                     "mascara": f"banco_minecraft_per:item/mascara_{ser}",
                     "arma": f"banco_minecraft_per:item/arma_{ser}",
-                    "tiana": "minecraft:block/gold_block",
-                    "base": "minecraft:block/chiseled_red_sandstone",
+                    # texturas propias: un modelo de ítem no puede mezclar texturas de bloques (otro atlas)
+                    "tiana": "banco_minecraft_per:item/tiana_oro",
+                    "base": "banco_minecraft_per:item/tiana_base",
                     "particle": f"banco_minecraft_per:item/unku_{ser}"}
         if ser in SENTADOS:
             # sentado en su tiana, con el arma en la mano (sin animación)
