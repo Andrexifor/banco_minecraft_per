@@ -107,6 +107,34 @@ def cuerpo_oculto():
     ]
 
 
+# punto de agarre de cada arma en su textura de 64 px (dónde la sostiene la mano)
+AGARRE = {"banquero": (22, 45), "tendero": (34, 26), "herrero": (17, 48), "mercader": (32, 38)}
+K_ARMA = 0.3125      # 64 px -> 20 unidades
+MANO = (17.0, 7.5, 13.5)
+
+
+def brazo_y_arma(ser):
+    """Brazo que sale del costado del unku hacia adelante, mano del material del ser y el arma en ella."""
+    tela = uv(20, 40, 24, 44)
+    piel = uv(21, 43, 25, 47)
+    def bloque(desde, hasta, cara, tex):
+        return caja(desde, hasta, {f: {"uv": cara, "texture": tex} for f in ("north", "south", "east", "west", "up", "down")})
+    mx, my, mz = MANO
+    gx, gy = AGARRE[ser]
+    x0 = mx - gx * K_ARMA
+    y1 = my + gy * K_ARMA
+    arma = caja([x0, y1 - 64 * K_ARMA, mz - 0.25], [x0 + 64 * K_ARMA, y1, mz + 0.25], {
+        "south": {"uv": uv(0, 0, 64, 64), "texture": "#arma"},
+        "north": {"uv": uv(64, 0, 0, 64), "texture": "#arma"},
+    })
+    return [
+        bloque([16.25, 10, 6.5], [19.25, 19, 10], tela, "#unku"),        # brazo (manga)
+        bloque([16, 6.5, 7], [19, 10, 12.5], tela, "#unku"),            # antebrazo hacia adelante
+        bloque([mx - 1.5, my - 1.5, mz - 1.5], [mx + 1.5, my + 1.5, mz + 1.5], piel, "#mascara"),  # mano
+        arma,
+    ]
+
+
 def mascara():
     z = Z_FRENTE - 1.5
     return [
@@ -128,8 +156,9 @@ def main():
         modelo = {
             "textures": {"unku": f"banco_minecraft_per:item/unku_{ser}",
                          "mascara": f"banco_minecraft_per:item/mascara_{ser}",
+                         "arma": f"banco_minecraft_per:item/arma_{ser}",
                          "particle": f"banco_minecraft_per:item/unku_{ser}"},
-            "elements": unku(img) + mascara() + cuerpo_oculto(),
+            "elements": unku(img) + mascara() + cuerpo_oculto() + brazo_y_arma(ser),
             "display": {"fixed": {"rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": [1, 1, 1]}},
         }
         with open(os.path.join(NS, "models", "item", f"figura_{ser}.json"), "w", encoding="utf-8") as fh:
