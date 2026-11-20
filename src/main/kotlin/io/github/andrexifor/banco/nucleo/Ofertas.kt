@@ -217,6 +217,79 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
                     ),
                     precio = 80_000, descripcion = "Alpaca cría que se queda chiquita para siempre", anunciar = false,
                 ),
+                Oferta(
+                    "flor_traslado", "Flor de traslado",
+                    especial("glowstone_dust", "flor_traslado", "flor", "1b", "Flor de traslado", "yellow", null,
+                        "Clic derecho a un animal: lo guarda en la flor", "Clic derecho al suelo: lo libera donde estés",
+                        "Se gasta al liberar al animal"),
+                    cantidad = 4, precio = 40_000, descripcion = "4 flores; cada una lleva un animal una vez", anunciar = false,
+                ),
+                Oferta(
+                    "condor", "Cóndor guardián",
+                    especial("feather", "pluma_condor", "condor", "1b", "Pluma del cóndor guardián", "gold", 1,
+                        "Clic derecho: llama o despide a tu cóndor", "Vuela a tu alrededor y ataca a los monstruos",
+                        "No se puede montar; te acompaña mientras estés conectado"),
+                    precio = 5_000_000, descripcion = "Un cóndor andino que te protege volando a tu alrededor",
+                ),
+            ),
+        )
+
+        // ---------- artículos del Sembrador del Vacío: mochilas ----------
+
+        /** Ítem especial: base vanilla con textura propia y una marca en custom_data. */
+        private fun especial(
+            base: String, modelo: String, clave: String, valor: String, nombre: String, color: String,
+            pila: Int?, vararg lineas: String,
+        ) = "minecraft:$base[" + listOfNotNull(
+            "item_model=\"banco_minecraft_per:$modelo\"",
+            pila?.let { "max_stack_size=$it" },
+            nombre(nombre, color),
+            lore(*lineas),
+            "custom_data={$MARCA:{$clave:$valor}}",
+        ).joinToString(",") + "]"
+
+        fun sembradorPorDefecto() = CatalogoOfertas(
+            mutableListOf(
+                Oferta(
+                    "chuspa", "Chuspa",
+                    especial("leather", "chuspa", "mochila", "\"chuspa\"", "Chuspa", "green", 1,
+                        "Bolsita andina de 5 casillas", "Clic derecho para abrirla",
+                        "Con hilo de alpaca en la otra mano: se agranda"),
+                    precio = 60_000, descripcion = "Mochila de 5 casillas",
+                ),
+                Oferta(
+                    "qepi", "Q'epi",
+                    especial("leather", "qepi", "mochila", "\"qepi\"", "Q'epi", "green", 1,
+                        "Atado andino de 18 casillas", "Clic derecho para abrirlo",
+                        "Con hilo de alpaca en la otra mano: se agranda"),
+                    precio = 250_000, descripcion = "Mochila de 18 casillas",
+                ),
+                Oferta(
+                    "gran_qepi", "Gran q'epi",
+                    especial("leather", "gran_qepi", "mochila", "\"gran_qepi\"", "Gran q'epi", "green", 1,
+                        "Gran atado andino de 27 casillas", "Clic derecho para abrirlo"),
+                    precio = 700_000, descripcion = "Mochila de 27 casillas",
+                ),
+                Oferta(
+                    "hilo_alpaca", "Hilo de alpaca",
+                    especial("string", "hilo_alpaca", "mejora", "1b", "Hilo de alpaca", "aqua", null,
+                        "Agranda una mochila sin perder lo que lleva:", "chuspa -> q'epi -> gran q'epi",
+                        "Tenlo en la otra mano y abre la mochila"),
+                    precio = 200_000, descripcion = "Agranda una mochila un tamaño",
+                ),
+                Oferta(
+                    "chuspa_ukhu", "Chuspa del Ukhu Pacha",
+                    especial("leather", "chuspa_ukhu", "mochila", "\"ukhu\"", "Chuspa del Ukhu Pacha", "dark_purple", 1,
+                        "Abre tu cofre de Ender desde donde estés", "Clic derecho para abrirla"),
+                    precio = 1_500_000, descripcion = "Acceso a tu cofre de Ender en cualquier lugar",
+                ),
+                Oferta(
+                    "chuspa_enlazada", "Chuspa enlazada",
+                    especial("leather", "chuspa_enlazada", "mochila", "\"enlazada\"", "Chuspa enlazada", "gold", 1,
+                        "Se enlaza a un cofre (simple o doble):", "tenla en la otra mano y abre el cofre",
+                        "Luego, clic derecho: abre ese cofre desde lejos", "Shift + clic derecho: la desenlaza"),
+                    precio = 900_000, descripcion = "Abre un cofre tuyo desde cualquier lugar",
+                ),
             ),
         )
 

@@ -49,6 +49,13 @@ object GuiTienda {
             val cantidad = catalogo.productosDe(cat.id).size
             gui.setSlot(slot, boton(ItemStack(item(cat.icono) ?: Items.CHEST), cat.nombre, listOf("$cantidad productos"), ChatFormatting.AQUA) { abrirCategoria(j, cat, 0) })
         }
+        // artículos propios del Sembrador del Vacío: mochilas, chuspa del Ukhu Pacha, chuspa enlazada
+        gui.setSlot(
+            26,
+            boton(ItemStack(Items.BUNDLE), "Artículos del Sembrador", listOf("Mochilas andinas y chuspas mágicas"), ChatFormatting.GREEN) {
+                GuiOfertas.abrir(j, Tienda.SEMBRADOR)
+            },
+        )
         gui.open()
     }
 

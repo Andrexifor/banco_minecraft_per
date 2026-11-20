@@ -10,6 +10,9 @@ import io.github.andrexifor.banco.juego.KitsReparacion
 import io.github.andrexifor.banco.juego.Npcs
 import io.github.andrexifor.banco.juego.Proteccion
 import io.github.andrexifor.banco.juego.Reliquias
+import io.github.andrexifor.banco.juego.Mochilas
+import io.github.andrexifor.banco.juego.FlorTraslado
+import io.github.andrexifor.banco.juego.Condor
 import io.github.andrexifor.banco.juego.SeresCosmicos
 import io.github.andrexifor.banco.nucleo.Banco
 import io.github.andrexifor.banco.nucleo.Catalogo
@@ -54,6 +57,8 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         private set
     lateinit var animales: CatalogoOfertas
         private set
+    lateinit var sembrador: CatalogoOfertas
+        private set
     lateinit var mercadoNegro: ConfigMercadoNegro
         private set
 
@@ -72,6 +77,7 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         bromas = almacen.cargarBromas()
         contrabando = almacen.cargarContrabando()
         animales = almacen.cargarAnimales()
+        sembrador = almacen.cargarSembrador()
         mercadoNegro = almacen.cargarMercadoNegro()
         Npcs.cargar()
         Logros.cargar()
@@ -84,6 +90,9 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         Monturas.registrarEventos()
         SeresCosmicos.registrarEventos()
         Reliquias.registrarEventos()
+        Mochilas.registrarEventos()
+        FlorTraslado.registrarEventos()
+        Condor.registrarEventos()
         LOGGER.info(
             "Banco Minecraft PER listo: {} cuentas, {} productos en la tienda, {} legendarios, {} zonas protegidas",
             banco.todas().size,
@@ -133,6 +142,7 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         bromas = almacen.cargarBromas()
         contrabando = almacen.cargarContrabando()
         animales = almacen.cargarAnimales()
+        sembrador = almacen.cargarSembrador()
         mercadoNegro = almacen.cargarMercadoNegro()
     }
 }

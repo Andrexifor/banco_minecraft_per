@@ -26,6 +26,7 @@ enum class Tienda(val titulo: String, val color: ChatFormatting, val concepto: S
     BROMAS("Mercader de bromas", ChatFormatting.LIGHT_PURPLE, "BROMA"),
     ANIMALES("Criador de animales", ChatFormatting.GREEN, "ANIMAL"),
     CONTRABANDO("Mercado negro", ChatFormatting.DARK_RED, "CONTRABANDO"),
+    SEMBRADOR("Artículos del Sembrador", ChatFormatting.DARK_GREEN, "ARTICULO"),
     ;
 
     val catalogo: CatalogoOfertas
@@ -33,6 +34,7 @@ enum class Tienda(val titulo: String, val color: ChatFormatting, val concepto: S
             BROMAS -> BancoMinecraftPer.bromas
             ANIMALES -> BancoMinecraftPer.animales
             CONTRABANDO -> BancoMinecraftPer.contrabando
+            SEMBRADOR -> BancoMinecraftPer.sembrador
         }
 }
 
@@ -100,7 +102,7 @@ object GuiOfertas {
         when (tienda) {
             Tienda.BROMAS -> Logros.sumar(j, Contador.GASTO_BROMAS, o.precio + impuesto, Metas.GASTO_BROMAS, Logro.PLATA_COMO_CANCHA)
             Tienda.CONTRABANDO -> Logros.sumar(j, Contador.COMPRAS_NEGRO, 1, Metas.COMPRAS_NEGRO, Logro.VIP_MERCADO_NEGRO)
-            Tienda.ANIMALES -> Unit
+            Tienda.ANIMALES, Tienda.SEMBRADOR -> Unit
         }
         return Respuesta(true, "¡${o.nombre} es tuyo! ${cobro.mensaje}")
     }
