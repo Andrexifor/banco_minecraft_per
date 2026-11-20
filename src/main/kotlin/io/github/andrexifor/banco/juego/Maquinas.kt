@@ -198,6 +198,24 @@ object Maquinas {
     private fun tumbaga(servidor: MinecraftServer): ItemStack =
         GuiOfertas.crearTexto(servidor, CATALOGO_TUMBAGA) ?: ItemStack(Items.ECHO_SHARD)
 
+    /** Precio al que el Guardián del Oro Estelar compra cada tumbaga. */
+    const val PRECIO_TUMBAGA = 50_000L
+
+    fun esTumbaga(s: ItemStack): Boolean = !s.isEmpty && datos(s)?.contains("tumbaga") == true
+
+    /** Vende al banco toda la tumbaga del inventario. */
+    fun venderTumbaga(j: ServerPlayer): Respuesta {
+        val inv = j.inventory
+        var n = 0
+        for (i in 0 until inv.containerSize) {
+            val s = inv.getItem(i)
+            if (esTumbaga(s)) { n += s.count; inv.setItem(i, ItemStack.EMPTY) }
+        }
+        if (n == 0) return Respuesta(false, "No llevas tumbaga")
+        val r = Operaciones.abonar(j, n * PRECIO_TUMBAGA, "TUMBAGA x$n")
+        return Respuesta(r.ok, "Vendiste $n tumbaga. ${r.mensaje}")
+    }
+
     const val CATALOGO_TUMBAGA = "minecraft:echo_shard[item_model=\"banco_minecraft_per:tumbaga\"," +
         "custom_name={text:\"Tumbaga\",color:\"gold\",italic:false}," +
         "lore=[{text:\"Aleación sagrada de oro y cobre\",color:\"gray\",italic:false}," +

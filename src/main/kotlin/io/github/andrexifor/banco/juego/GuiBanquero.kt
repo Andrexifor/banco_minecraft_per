@@ -48,6 +48,7 @@ object GuiBanquero {
 
         gui.setSlot(10, boton(ItemStack(Items.CHEST), "Depositar todo", listOf("Guarda en el banco todo el", "efectivo de tu inventario"), ChatFormatting.GREEN, accion { Operaciones.depositar(j, soloMano = false) }))
         gui.setSlot(11, boton(Efectivo.crear(Denominacion.BILLETE_100, 1), "Depositar lo de la mano", listOf("Solo el stack que tienes", "en la mano principal"), ChatFormatting.GREEN, accion { Operaciones.depositar(j, soloMano = true) }))
+        gui.setSlot(13, boton(ItemStack(Items.ECHO_SHARD), "Vender tumbaga", listOf("El Guardián compra cada tumbaga", "a ${Formato.soles(Maquinas.PRECIO_TUMBAGA)} (toda la que lleves)"), ChatFormatting.GOLD, accion { Maquinas.venderTumbaga(j) }))
         gui.setSlot(14, boton(ItemStack(Items.HOPPER), "Ordenar mi efectivo", listOf("Junta tus billetes y monedas", "en la menor cantidad de piezas"), ChatFormatting.AQUA, accion { Operaciones.ordenarEfectivo(j) }))
         gui.setSlot(16, boton(Efectivo.crear(Denominacion.MONEDA_5, 1), "Cambiar a sencillo", listOf("Cambia UNA pieza de tu mano", "por piezas menores (100 → 50 + 50)"), ChatFormatting.AQUA, accion { Operaciones.cambiarASencillo(j) }))
 
