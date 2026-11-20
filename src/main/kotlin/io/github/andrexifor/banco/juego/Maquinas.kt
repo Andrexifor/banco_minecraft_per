@@ -25,6 +25,10 @@ import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.item.ItemEntity
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
+import net.minecraft.world.item.BlockItem
+import net.minecraft.world.item.component.ItemLore
+import net.minecraft.world.level.block.ChestBlock
+import net.minecraft.world.level.block.state.properties.ChestType
 import net.minecraft.world.item.component.CustomData
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.AbstractFurnaceBlock
@@ -256,6 +260,18 @@ object Maquinas {
                 if (mano == InteractionHand.MAIN_HAND) colocar(jugador, nivel, s, maqueta, d, golpe.blockPos.relative(golpe.direction))
                 return@register InteractionResult.SUCCESS
             }
+            // nadie pone bloques dentro de una máquina (al desarmarla se perderían); encima o al lado, sí
+            if (s.item is BlockItem) {
+                val clic = golpe.blockPos
+                val enClic = en(nivel, clic)
+                val esHorno = enClic?.tipo == "horno" && clic == enClic.nucleo()
+                val abreMenu = !jugador.isShiftKeyDown && nivel.getBlockState(clic).getMenuProvider(nivel, clic) != null
+                val destino = if (nivel.getBlockState(clic).canBeReplaced()) clic else clic.relative(golpe.direction)
+                if (!esHorno && !abreMenu && en(nivel, destino) != null) {
+                    if (mano == InteractionHand.MAIN_HAND) aviso(jugador, "No se pueden poner bloques dentro de una máquina.", ChatFormatting.RED)
+                    return@register InteractionResult.FAIL
+                }
+            }
             val m = en(nivel, golpe.blockPos) ?: return@register InteractionResult.PASS
             if (m.dueno != jugador.uuid.toString()) {
                 aviso(jugador, if (m.tipo == "tambo") "Este tambo es de otro jugador." else "Esta máquina es de otro jugador.", ChatFormatting.RED)
@@ -273,6 +289,10 @@ object Maquinas {
             if (mejora != null) { mejorar(jugador, nivel, m, s, mejora); return@register InteractionResult.SUCCESS }
             // 4) tanque: sacar o guardar lava
             if (m.tipo == "tanque") { tanque(jugador, nivel, m, s, mano); return@register InteractionResult.SUCCESS }
+            // 5) con la mano vacía: muestra su estado y sus mejoras (el horno de la huayrachina se abre normal)
+            if (s.isEmpty && !(m.tipo == "horno" && golpe.blockPos == m.nucleo())) {
+                estado(jugador, nivel, m); return@register InteractionResult.SUCCESS
+            }
             InteractionResult.PASS
         }
         PlayerBlockBreakEvents.BEFORE.register { nivel, jugador, pos, _, _ ->
@@ -340,6 +360,10 @@ object Maquinas {
         interno.putBoolean("corazon", m.corazon); interno.putInt("nivelTanque", m.nivelTanque); interno.putInt("lava", m.lava)
         raiz.put(MARCA, interno)
         maqueta.set(DataComponents.CUSTOM_DATA, CustomData.of(raiz))
+        // la descripción de la maqueta muestra las mejoras que guarda
+        val previas = maqueta.get(DataComponents.LORE)?.lines() ?: emptyList()
+        val extra = mejoras(m).map { Component.literal(it).withStyle { st -> st.withColor(ChatFormatting.AQUA).withItalic(false) } }
+        if (extra.isNotEmpty()) maqueta.set(DataComponents.LORE, ItemLore(previas + extra))
         Inventarios.dar(j, maqueta)
         aviso(j, "${nombre(m.tipo)}: desarmado. La maqueta guarda sus mejoras.")
     }
@@ -391,13 +415,62 @@ object Maquinas {
             kotlin.math.abs(it.x - m.x) <= CERCA && kotlin.math.abs(it.y - m.y) <= CERCA && kotlin.math.abs(it.z - m.z) <= CERCA
     }
 
-    private fun cofreVecino(nivel: ServerLevel, m: Maquina): Container? {
-        for (dx in -2..2) for (dz in -2..2) for (dy in 0..2) {
+    /**
+     * Cofres (o barriles) pegados a la máquina: alrededor, a la altura de la estructura, y encima de ella.
+     * Un cofre doble cuenta como uno solo de 54 casillas.
+     */
+    private fun cofres(nivel: ServerLevel, m: Maquina): List<Container> {
+        val r = ArrayList<Container>()
+        val vistos = HashSet<BlockPos>()
+        val posiciones = ArrayList<BlockPos>()
+        for (dy in 0 until m.alto()) for (dx in -2..2) for (dz in -2..2) {
             if (dx in -1..1 && dz in -1..1) continue
-            val be = nivel.getBlockEntity(m.origen().offset(dx, dy, dz))
-            if (be is Container && be !is AbstractFurnaceBlockEntity) return be
+            posiciones += m.origen().offset(dx, dy, dz)
         }
-        return null
+        for (dx in -1..1) for (dz in -1..1) posiciones += m.origen().offset(dx, m.alto(), dz)
+        for (p in posiciones) {
+            if (p in vistos) continue
+            vistos += p
+            val st = nivel.getBlockState(p)
+            val bloque = st.block
+            if (bloque is ChestBlock) {
+                if (st.getValue(ChestBlock.TYPE) != ChestType.SINGLE) vistos += p.relative(ChestBlock.getConnectedDirection(st))
+                ChestBlock.getContainer(bloque, st, nivel, p, true)?.let { r += it }
+                continue
+            }
+            val be = nivel.getBlockEntity(p)
+            if (be is Container && be !is AbstractFurnaceBlockEntity) r += be
+        }
+        return r
+    }
+
+    /** Las mejoras de una máquina, en palabras. */
+    private fun mejoras(m: Maquina): List<String> = when (m.tipo) {
+        "cantera" -> listOf(
+            "Velocidad: ${TIEMPOS_CANTERA[m.vel]} s por bloque (cinceles: ${m.vel} de ${TIEMPOS_CANTERA.size - 1})",
+            "Vetas: ${if (m.vetas == 0) "ninguna (solo piedra)" else "nivel ${m.vetas} de 3"}",
+            "Brazo de la cantera: ${if (m.auto) "sí (pica sola cada 5 s)" else "no"}",
+        )
+        "fuente" -> listOf("Corazón del Misti: ${if (m.corazon) "sí (lava cada 2.5 min)" else "no (lava cada 5 min)"}")
+        "tanque" -> listOf("Tamaño: ${CAPACIDADES[m.nivelTanque]} baldes (aros: ${m.nivelTanque} de ${CAPACIDADES.size - 1})", "Lava: ${m.lava} baldes")
+        else -> emptyList()
+    }
+
+    private fun estado(j: ServerPlayer, nivel: ServerLevel, m: Maquina) {
+        aviso(j, "— ${nombre(m.tipo)} —", ChatFormatting.GOLD)
+        mejoras(m).forEach { aviso(j, it, ChatFormatting.AQUA) }
+        when (m.tipo) {
+            "cantera" -> if (m.auto) {
+                val n = cofres(nivel, m).size
+                aviso(j, if (n == 0) "Sin cofre: pon cofres pegados a la cantera (al lado o encima)." else "Cofres conectados: $n (llena uno y pasa al siguiente)", ChatFormatting.GRAY)
+            }
+            "fuente" -> aviso(j, "Próxima lava en ${m.falta} s" + if (tanqueCerca(m) { true } != null) " (va al tanque)" else " (al caldero)", ChatFormatting.GRAY)
+            "horno" -> {
+                val t = tanqueCerca(m) { true }
+                aviso(j, if (t == null) "Sin tanque cerca (a 8 bloques o menos)." else "Tanque cerca: ${t.lava} baldes de lava.", ChatFormatting.GRAY)
+            }
+        }
+        aviso(j, "Shift + clic derecho al centro con la mano vacía: se desarma (guarda las mejoras).", ChatFormatting.DARK_GRAY)
     }
 
     /** Una vez por segundo: regenera canteras, picado automático, fuentes y hornos. */
@@ -414,11 +487,12 @@ object Maquinas {
                     }
                     if (m.auto && --m.faltaAuto <= 0) {
                         m.faltaAuto = 5
-                        val cofre = cofreVecino(nivel, m)
-                        if (cofre != null) {
-                            // si el cofre está lleno, lo que no entra se descarta: nada cae al piso
-                            HopperBlockEntity.addItem(null, cofre, itemDe(sorteo(m.vetas), servidor), null)
+                        // llena los cofres en orden; si todos están llenos, lo que no entra se descarta (nada cae al piso)
+                        var resto = itemDe(sorteo(m.vetas), servidor)
+                        for (cofre in cofres(nivel, m)) {
+                            resto = HopperBlockEntity.addItem(null, cofre, resto, null)
                             cofre.setChanged()
+                            if (resto.isEmpty) break
                         }
                     }
                 }

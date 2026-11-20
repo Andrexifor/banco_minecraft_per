@@ -44,13 +44,23 @@ object Tambos {
         }
     }
 
-    /** El datapack registra la entidad del tambo de la plaza: se llega a su lado. */
+    /**
+     * El datapack registra la entidad del tambo de la plaza (cubre todo el tambo, así cualquier parte abre el
+     * menú). Se llega delante de él: a 2.4 bloques hacia donde mira la entidad (el centro de la plaza).
+     */
     fun fijarCentral(e: Entity) {
         val dim = e.level().dimension().identifier().toString()
-        central = Punto(dim, e.x, e.y, e.z, e.yRot)
+        val yaw = Math.toRadians(e.yRot.toDouble())
+        val x = e.x - kotlin.math.sin(yaw) * 2.4
+        val z = e.z + kotlin.math.cos(yaw) * 2.4
+        // si la entidad empieza a la altura del piso, se llega un bloque más arriba (sobre el piso)
+        val nivel = e.level()
+        val pie = BlockPos.containing(x, e.y, z)
+        val y = if (nivel.getBlockState(pie).getCollisionShape(nivel, pie).isEmpty) e.y else pie.y + 1.0
+        central = Punto(dim, x, y, z, e.yRot)
         try {
             Files.createDirectories(archivo.parent)
-            Files.writeString(archivo, "$dim ${e.x} ${e.y} ${e.z} ${e.yRot}")
+            Files.writeString(archivo, "$dim $x $y $z ${e.yRot}")
         } catch (ex: Exception) {
             BancoMinecraftPer.LOGGER.warn("No se pudo guardar tambo_central.txt: {}", ex.message)
         }
