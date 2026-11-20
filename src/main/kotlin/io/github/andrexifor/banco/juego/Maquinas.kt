@@ -4,6 +4,7 @@ import com.google.gson.GsonBuilder
 import eu.pb4.sgui.api.elements.GuiElementBuilder
 import eu.pb4.sgui.api.gui.SimpleGui
 import io.github.andrexifor.banco.BancoMinecraftPer
+import io.github.andrexifor.banco.nucleo.Formato
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents
@@ -46,6 +47,7 @@ import net.minecraft.world.level.block.entity.HopperBlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
+import io.github.andrexifor.banco.mixin.AbstractFurnaceAccessor
 import java.nio.file.Files
 import java.nio.charset.StandardCharsets
 import java.util.UUID
@@ -98,12 +100,22 @@ object Maquinas {
         var filtro: String = "cobre,hierro,oro",
         var progreso: Int = 0,
         var fundidas: Int = 0,
+        /** Huayrachina: Soplo del Wayra (funde 3 veces más rápido). */
+        var wayra: Boolean = false,
+        var progresoSol: Int = 0,
+        /** Cantera: 0 sin anexo, 1 anexo (tumbaga y polvo de diamante), 2 anexo estelar (además polvo estelar). */
+        var modulo: Int = 0,
+        var bloque2: String = "piedra",
+        var falta2: Int = 0,
     ) {
         fun origen() = BlockPos(x, y, z)
         fun nucleo() = BlockPos(x, y + 1, z)
         fun alto() = if (tipo == "tanque") 5 else 4
+        /** El anexo de la cantera crece hacia el este: dos bloques más en x. */
+        fun maxDx() = if (tipo == "cantera" && modulo > 0) 3 else 1
+        fun nucleo2() = BlockPos(x + 2, y + 1, z)
         fun contiene(dim2: String, p: BlockPos) =
-            dim2 == dim && p.x in x - 1..x + 1 && p.z in z - 1..z + 1 && p.y in y until y + alto()
+            dim2 == dim && p.x in x - 1..x + maxDx() && p.z in z - 1..z + 1 && p.y in y until y + alto()
     }
 
     private data class Archivo(var maquinas: MutableList<Maquina> = mutableListOf())
@@ -153,24 +165,27 @@ object Maquinas {
         val o = m.origen()
         val r = ArrayList<Pair<BlockPos, BlockState>>()
         fun put(dx: Int, dy: Int, dz: Int, s: BlockState) { r += o.offset(dx, dy, dz) to s }
-        fun capa(dy: Int, centro: BlockState?, borde: BlockState?, esquina: BlockState?) {
+        fun capa(dy: Int, centro: BlockState?, borde: BlockState?, esquina: BlockState?, ox: Int = 0) {
             for (dx in -1..1) for (dz in -1..1) {
                 val s = when {
                     dx == 0 && dz == 0 -> centro
                     dx != 0 && dz != 0 -> esquina
                     else -> borde
                 } ?: continue
-                put(dx, dy, dz, s)
+                put(dx + ox, dy, dz, s)
             }
         }
         when (m.tipo) {
             "cantera" -> {
                 val base = Blocks.CHISELED_STONE_BRICKS.defaultBlockState()
                 val pilar = Blocks.STONE_BRICK_WALL.defaultBlockState()
-                capa(0, base, base, base)
-                capa(1, bloqueCantera(m.bloque), null, pilar)
-                capa(2, null, null, pilar)
-                capa(3, null, Blocks.STONE_BRICK_SLAB.defaultBlockState(), base)
+                val modulos = if (m.modulo > 0) listOf(0 to m.bloque, 2 to m.bloque2) else listOf(0 to m.bloque)
+                for ((ox, b) in modulos) {
+                    capa(0, base, base, base, ox)
+                    capa(1, bloqueCantera(b), null, pilar, ox)
+                    capa(2, null, null, pilar, ox)
+                    capa(3, null, Blocks.STONE_BRICK_SLAB.defaultBlockState(), base, ox)
+                }
             }
             "fuente" -> {
                 capa(0, Blocks.MAGMA_BLOCK.defaultBlockState(), Blocks.BLACKSTONE.defaultBlockState(), Blocks.BLACKSTONE.defaultBlockState())
@@ -210,6 +225,8 @@ object Maquinas {
         "hierro" -> Blocks.IRON_ORE
         "cobre" -> Blocks.COPPER_ORE
         "tumbaga" -> Blocks.RAW_GOLD_BLOCK
+        "diamante" -> Blocks.DEEPSLATE_DIAMOND_ORE
+        "estelar" -> Blocks.AMETHYST_BLOCK
         "nada" -> Blocks.AIR
         else -> Blocks.COBBLESTONE
     }.defaultBlockState()
@@ -225,14 +242,44 @@ object Maquinas {
         }
     }
 
+    /** Qué sale del anexo: ya no cobre; más tumbaga, polvo de diamante y, con el anexo estelar, polvo estelar. */
+    private fun sorteo2(modulo: Int): String {
+        val r = Random.nextDouble()
+        return when (modulo) {
+            1 -> when { r < 0.10 -> "tumbaga"; r < 0.14 -> "diamante"; r < 0.26 -> "oro"; r < 0.40 -> "hierro"; else -> "piedra" }
+            2 -> when { r < 0.12 -> "tumbaga"; r < 0.18 -> "diamante"; r < 0.20 -> "estelar"; r < 0.32 -> "oro"; r < 0.44 -> "hierro"; else -> "piedra" }
+            else -> "piedra"
+        }
+    }
+
     private fun itemDe(b: String, servidor: MinecraftServer): ItemStack = when (b) {
         "carbon" -> ItemStack(Items.COAL)
         "oro" -> ItemStack(Items.RAW_GOLD)
         "hierro" -> ItemStack(Items.RAW_IRON)
         "cobre" -> ItemStack(Items.RAW_COPPER)
         "tumbaga" -> tumbaga(servidor)
+        "diamante" -> GuiOfertas.crearTexto(servidor, CATALOGO_POLVO_DIAMANTE) ?: ItemStack(Items.DIAMOND)
+        "estelar" -> GuiOfertas.crearTexto(servidor, CATALOGO_POLVO_ESTELAR) ?: ItemStack(Items.GLOWSTONE_DUST)
         else -> ItemStack(Items.COBBLESTONE)
     }
+
+    /** Lo que se entrega como ítem propio al picar a mano (si no, el bloque daría lo suyo). */
+    private fun especialAMano(b: String, servidor: MinecraftServer): ItemStack? = when (b) {
+        "tumbaga", "diamante", "estelar" -> itemDe(b, servidor)
+        else -> null
+    }
+
+    private fun especialTexto(id: String, nombre: String, color: String, vararg lineas: String) =
+        "minecraft:echo_shard[item_model=\"banco_minecraft_per:$id\"," +
+            "custom_name={text:\"$nombre\",color:\"$color\",italic:false}," +
+            "lore=[" + lineas.joinToString(",") { "{text:\"$it\",color:\"gray\",italic:false}" } + "]," +
+            "custom_data={banco_minecraft_per:{$id:1b}}]"
+
+    val CATALOGO_POLVO_DIAMANTE = especialTexto("polvo_diamante", "Polvo de diamante", "aqua", "Sale del anexo de la cantera inca")
+    val CATALOGO_POLVO_ESTELAR = especialTexto("polvo_estelar", "Polvo estelar", "light_purple", "Sale del anexo estelar de la cantera", "Dicen que cayó de las estrellas")
+    val CATALOGO_SOL_TUMBAGA = especialTexto("sol_tumbaga", "Sol de Tumbaga", "gold", "Tumbaga fundida en una Huayrachina", "de 5 bocas: brilla como el Inti")
+
+    fun esSolTumbaga(s: ItemStack): Boolean = !s.isEmpty && datos(s)?.contains("sol_tumbaga") == true
 
     private fun tumbaga(servidor: MinecraftServer): ItemStack =
         GuiOfertas.crearTexto(servidor, CATALOGO_TUMBAGA) ?: ItemStack(Items.ECHO_SHARD)
@@ -337,11 +384,14 @@ object Maquinas {
         PlayerBlockBreakEvents.BEFORE.register { nivel, jugador, pos, _, _ ->
             val m = en(nivel, pos) ?: return@register true
             if (jugador !is ServerPlayer || nivel !is ServerLevel) return@register false
-            if (m.tipo == "cantera" && pos == m.nucleo() && m.dueno == jugador.uuid.toString()) {
-                if (m.bloque == "tumbaga") { // la tumbaga se entrega como ítem propio
+            val esDos = m.tipo == "cantera" && m.modulo > 0 && pos == m.nucleo2()
+            if (m.tipo == "cantera" && (pos == m.nucleo() || esDos) && m.dueno == jugador.uuid.toString()) {
+                val propio = especialAMano(if (esDos) m.bloque2 else m.bloque, nivel.server)
+                if (propio != null) { // tumbaga y polvos se entregan como ítem propio
                     nivel.setBlock(pos, Blocks.AIR.defaultBlockState(), 3)
-                    nivel.addFreshEntity(ItemEntity(nivel, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, tumbaga(nivel.server)))
-                    m.bloque = "nada"; m.falta = TIEMPOS_CANTERA[m.vel]; cambios = true
+                    nivel.addFreshEntity(ItemEntity(nivel, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, propio))
+                    if (esDos) { m.bloque2 = "nada"; m.falta2 = TIEMPOS_CANTERA[m.vel] } else { m.bloque = "nada"; m.falta = TIEMPOS_CANTERA[m.vel] }
+                    cambios = true
                     return@register false
                 }
                 return@register true
@@ -352,6 +402,7 @@ object Maquinas {
         PlayerBlockBreakEvents.AFTER.register { nivel, _, pos, _, _ ->
             val m = en(nivel, pos) ?: return@register
             if (m.tipo == "cantera" && pos == m.nucleo()) { m.bloque = "nada"; m.falta = TIEMPOS_CANTERA[m.vel]; cambios = true }
+            if (m.tipo == "cantera" && m.modulo > 0 && pos == m.nucleo2()) { m.bloque2 = "nada"; m.falta2 = TIEMPOS_CANTERA[m.vel]; cambios = true }
         }
         ServerTickEvents.END_SERVER_TICK.register { servidor ->
             animar()
@@ -366,11 +417,11 @@ object Maquinas {
             tipo = tipo, dim = dim(nivel), x = base.x, y = base.y, z = base.z, dueno = j.uuid.toString(),
             vel = d.getIntOr("vel", 0), vetas = d.getIntOr("vetas", 0), auto = d.getBooleanOr("auto", false),
             corazon = d.getBooleanOr("corazon", false), nivelTanque = d.getIntOr("nivelTanque", 0), lava = d.getIntOr("lava", 0),
-            bocas = d.getIntOr("bocas", 0),
+            bocas = d.getIntOr("bocas", 0), wayra = d.getBooleanOr("wayra", false), modulo = d.getIntOr("modulo", 0),
             facing = j.direction.opposite.serializedName,
         )
         val piezas = piezas(m)
-        val zona = (-1..1).flatMap { dx -> (-1..1).flatMap { dz -> (0 until m.alto()).map { dy -> base.offset(dx, dy, dz) } } }
+        val zona = (-1..m.maxDx()).flatMap { dx -> (-1..1).flatMap { dz -> (0 until m.alto()).map { dy -> base.offset(dx, dy, dz) } } }
         if (zona.any { !nivel.getBlockState(it).canBeReplaced() } || zona.any { en(nivel, it) != null }) {
             aviso(j, "No hay espacio: necesita 3x3 libre y ${m.alto()} de alto.", ChatFormatting.RED); return
         }
@@ -390,7 +441,7 @@ object Maquinas {
     }
 
     private fun desarmar(j: ServerPlayer, nivel: ServerLevel, m: Maquina) {
-        val zona = (-1..1).flatMap { dx -> (-1..1).flatMap { dz -> (0 until m.alto()).map { dy -> m.origen().offset(dx, dy, dz) } } }
+        val zona = (-1..m.maxDx()).flatMap { dx -> (-1..1).flatMap { dz -> (0 until m.alto()).map { dy -> m.origen().offset(dx, dy, dz) } } }
         lista.remove(m)
         quitarAdornos(nivel, m)
         zona.forEach { nivel.setBlock(it, Blocks.AIR.defaultBlockState(), 3) }
@@ -402,7 +453,7 @@ object Maquinas {
         val interno = raiz.getCompoundOrEmpty(MARCA)
         interno.putInt("vel", m.vel); interno.putInt("vetas", m.vetas); interno.putBoolean("auto", m.auto)
         interno.putBoolean("corazon", m.corazon); interno.putInt("nivelTanque", m.nivelTanque); interno.putInt("lava", m.lava)
-        interno.putInt("bocas", m.bocas)
+        interno.putInt("bocas", m.bocas); interno.putBoolean("wayra", m.wayra); interno.putInt("modulo", m.modulo)
         // el quipu no viaja con la maqueta: vuelve al inventario
         if (m.enlace.isNotBlank()) itemMejora(servidor, "quipu")?.let { Inventarios.dar(j, it) }
         raiz.put(MARCA, interno)
@@ -423,6 +474,7 @@ object Maquinas {
             mejora == "corazon" && m.tipo == "fuente" && !m.corazon -> { m.corazon = true; true }
             mejora == "aro" && m.tipo == "tanque" && m.nivelTanque < CAPACIDADES.size - 1 -> { m.nivelTanque++; pintarTanque(nivel, m); true }
             mejora == "boca" && m.tipo == "horno" && m.bocas < MAX_BOCAS -> { m.bocas++; true }
+            mejora == "wayra" && m.tipo == "horno" && !m.wayra -> { m.wayra = true; true }
             else -> false
         }
         if (!ok) { aviso(j, "Esa mejora no sirve aquí o ya está al máximo.", ChatFormatting.RED); return }
@@ -431,7 +483,7 @@ object Maquinas {
         aviso(j, when (m.tipo) {
             "cantera" -> "Cantera: ${TIEMPOS_CANTERA[m.vel]} s por bloque, vetas ${m.vetas}${if (m.auto) ", automática" else ""}."
             "fuente" -> "Fuente del Misti: un balde cada ${tiempoFuente(m) / 60.0} min."
-            "horno" -> "Huayrachina: funde ${1 + m.bocas} a la vez."
+            "horno" -> "Huayrachina: funde ${1 + m.bocas} a la vez" + if (m.wayra) ", 3 veces más rápido." else "."
             else -> "Tanque: ahora guarda ${CAPACIDADES[m.nivelTanque]} baldes."
         })
     }
@@ -472,11 +524,12 @@ object Maquinas {
         val r = ArrayList<Pair<BlockPos, Container>>()
         val vistos = HashSet<BlockPos>()
         val posiciones = ArrayList<BlockPos>()
-        for (dy in 0 until m.alto()) for (dx in -2..2) for (dz in -2..2) {
-            if (dx in -1..1 && dz in -1..1) continue
+        val md = m.maxDx()
+        for (dy in 0 until m.alto()) for (dx in -2..md + 1) for (dz in -2..2) {
+            if (dx in -1..md && dz in -1..1) continue
             posiciones += m.origen().offset(dx, dy, dz)
         }
-        for (dx in -1..1) for (dz in -1..1) posiciones += m.origen().offset(dx, m.alto(), dz)
+        for (dx in -1..md) for (dz in -1..1) posiciones += m.origen().offset(dx, m.alto(), dz)
         for (p in posiciones) {
             if (p in vistos) continue
             vistos += p
@@ -499,10 +552,14 @@ object Maquinas {
             "Velocidad: ${TIEMPOS_CANTERA[m.vel]} s por bloque (cinceles: ${m.vel} de ${TIEMPOS_CANTERA.size - 1})",
             "Vetas: " + when (m.vetas) { 0 -> "ninguna (solo piedra)"; 1 -> "nivel 1 de 3 (cobre)"; 2 -> "nivel 2 de 3 (cobre, hierro, oro y tumbaga)"; else -> "nivel 3 de 3 (más hierro, oro y tumbaga)" },
             "Brazo de la cantera: ${if (m.auto) "sí (pica sola cada 5 s)" else "no"}",
+            "Anexo: " + when (m.modulo) { 0 -> "no"; 1 -> "sí (tumbaga y polvo de diamante)"; else -> "estelar (además polvo estelar)" },
         )
         "fuente" -> listOf("Corazón del Misti: ${if (m.corazon) "sí (lava cada 2.5 min)" else "no (lava cada 5 min)"}")
         "tanque" -> listOf("Tamaño: ${CAPACIDADES[m.nivelTanque]} baldes (aros: ${m.nivelTanque} de ${CAPACIDADES.size - 1})", "Lava: ${m.lava} baldes")
-        "horno" -> listOf("Bocas extra: ${m.bocas} de $MAX_BOCAS (funde ${1 + m.bocas} a la vez)")
+        "horno" -> listOf(
+            "Bocas extra: ${m.bocas} de $MAX_BOCAS (funde ${1 + m.bocas} a la vez)",
+            "Soplo del Wayra: " + if (m.wayra) "sí (3 veces más rápido)" else "no",
+        )
         else -> emptyList()
     }
 
@@ -529,8 +586,9 @@ object Maquinas {
                     f != null -> "Lava: Fuente del Misti cerca"
                     else -> "Sin lava: pon un tanque o una Fuente del Misti a 8 bloques o menos"
                 }
-                r += "Funde lo que pongas dentro; lo listo va a los cofres pegados"
-                r += "Una cantera automática cerca le manda el hierro y el cobre"
+                r += "Funde lo de los cofres pegados y lo que le mande una cantera (quipu)"
+                r += "Lo listo va a los mismos cofres"
+                r += if (m.bocas >= MAX_BOCAS) "Con 5 bocas: funde Tumbaga en Sol de Tumbaga" else "Con 5 bocas podrá fundir Tumbaga en Sol de Tumbaga"
             }
         }
         return r
@@ -542,7 +600,7 @@ object Maquinas {
         for (m in lista.toList()) {
             val nivel = servidor.allLevels.firstOrNull { dim(it) == m.dim } ?: continue
             if (!nivel.isLoaded(m.origen())) continue
-            if (segundos % 2 == 0) reparar(nivel, m)
+            if (segundos % 2 == 0) { reparar(nivel, m); ambiente(nivel, m) }
             if (segundos % 10 == 0 || clave(m) !in revisadas) revisarAdornos(nivel, m)
             when (m.tipo) {
                 "cantera" -> {
@@ -551,26 +609,19 @@ object Maquinas {
                         nivel.setBlock(m.nucleo(), bloqueCantera(m.bloque), 3)
                         cambios = true
                     }
+                    if (m.modulo > 0 && m.bloque2 == "nada" && --m.falta2 <= 0) {
+                        m.bloque2 = sorteo2(m.modulo)
+                        nivel.setBlock(m.nucleo2(), bloqueCantera(m.bloque2), 3)
+                        cambios = true
+                    }
                     if (m.auto && --m.faltaAuto <= 0) {
                         m.faltaAuto = 5
-                        // llena los cofres en orden; si todos están llenos, lo que no entra se descarta (nada cae al piso)
                         val sale = sorteo(m.vetas)
-                        var resto = itemDe(sale, servidor)
-                        var destino: BlockPos? = null
-                        if (sale in m.filtro.split(',')) hornoUnido(nivel, m)?.let { (h, horno) ->
-                            val entrada = horno.getItem(0)
-                            if (entrada.isEmpty) { horno.setItem(0, resto); resto = ItemStack.EMPTY }
-                            else if (ItemStack.isSameItemSameComponents(entrada, resto) && entrada.count < 64) { entrada.grow(1); resto = ItemStack.EMPTY }
-                            if (resto.isEmpty) { horno.setChanged(); destino = h.nucleo() }
+                        picar(nivel, m, sale, entregar(nivel, m, sale, servidor), m.nucleo(), "brazo")
+                        if (m.modulo > 0) {
+                            val sale2 = sorteo2(m.modulo)
+                            picar(nivel, m, sale2, entregar(nivel, m, sale2, servidor), m.nucleo2(), "brazo2")
                         }
-                        if (!resto.isEmpty) for ((pos, cofre) in cofres(nivel, m)) {
-                            val antes = resto.count
-                            resto = HopperBlockEntity.addItem(null, cofre, resto, null)
-                            cofre.setChanged()
-                            if (destino == null && (resto.isEmpty || resto.count < antes)) destino = pos
-                            if (resto.isEmpty) break
-                        }
-                        picar(nivel, m, sale, destino)
                     }
                 }
                 "fuente" -> {
@@ -594,16 +645,43 @@ object Maquinas {
                 "tanque" -> if (segundos % 5 == 0) pintarTanque(nivel, m)
                 "horno" -> {
                     val horno = nivel.getBlockEntity(m.nucleo()) as? AbstractFurnaceBlockEntity ?: continue
-                    val combustible = horno.getItem(1)
-                    if (combustible.`is`(Items.BUCKET)) horno.setItem(1, ItemStack.EMPTY)
-                    if (!horno.getItem(0).isEmpty && horno.getItem(1).isEmpty && tomarLava(nivel, m)) {
-                        horno.setItem(1, ItemStack(Items.LAVA_BUCKET))
+                    val fuego = (horno as Any) as AbstractFurnaceAccessor
+                    // la lava entra directo al fuego: ya no hay baldes en el horno que se puedan sacar
+                    if (horno.getItem(1).`is`(Items.BUCKET)) horno.setItem(1, ItemStack.EMPTY)
+                    alimentar(nivel, m, horno)
+                    val entra = horno.getItem(0)
+                    if (!entra.isEmpty && fundible(m, entra) && fuego.litTimeRemaining <= 0 && tomarLava(nivel, m)) {
+                        fuego.litTimeRemaining = TICKS_LAVA
+                        fuego.litTotalTime = TICKS_LAVA
+                        val st = nivel.getBlockState(m.nucleo())
+                        if (st.hasProperty(AbstractFurnaceBlock.LIT) && !st.getValue(AbstractFurnaceBlock.LIT)) {
+                            nivel.setBlock(m.nucleo(), st.setValue(AbstractFurnaceBlock.LIT, true), 3)
+                        }
+                        horno.setChanged()
+                        cambios = true
+                    }
+                    val prendido = fuego.litTimeRemaining > 0
+                    val ritmo = if (m.wayra) 3 else 1
+                    // Soplo del Wayra: el horno de verdad avanza 3 veces más rápido
+                    if (prendido && m.wayra && !horno.getItem(0).isEmpty && fuego.cookingTotalTime > 0) {
+                        fuego.cookingTimer = minOf(fuego.cookingTimer + 40, fuego.cookingTotalTime - 1)
+                    }
+                    // Sol de Tumbaga: solo con las 5 bocas
+                    if (prendido && m.bocas >= MAX_BOCAS && esTumbaga(horno.getItem(0))) {
+                        m.progresoSol += ritmo
+                        val salida = horno.getItem(2)
+                        if (m.progresoSol >= SEGUNDOS_SOL && (salida.isEmpty || (esSolTumbaga(salida) && salida.count < 64))) {
+                            m.progresoSol = 0
+                            horno.getItem(0).shrink(1)
+                            if (salida.isEmpty) GuiOfertas.crearTexto(servidor, CATALOGO_SOL_TUMBAGA)?.let { horno.setItem(2, it) } else salida.grow(1)
+                            horno.setChanged()
+                            nivel.playSound(null, m.nucleo(), SoundEvents.BLAZE_SHOOT, SoundSource.BLOCKS, 0.6f, 1.4f)
+                        }
                         cambios = true
                     }
                     // las bocas extra funden más a la vez (mientras el horno esté encendido)
-                    val prendido = nivel.getBlockState(m.nucleo()).let { it.hasProperty(AbstractFurnaceBlock.LIT) && it.getValue(AbstractFurnaceBlock.LIT) }
                     if (m.bocas > 0 && prendido) {
-                        m.progreso += m.bocas
+                        m.progreso += m.bocas * ritmo
                         while (m.progreso >= SEGUNDOS_POR_FUNDIDO) {
                             m.progreso -= SEGUNDOS_POR_FUNDIDO
                             val entrada = horno.getItem(0)
@@ -619,7 +697,7 @@ object Maquinas {
                         }
                         cambios = true
                     }
-                    // lo fundido pasa a los cofres pegados al horno
+                    // lo fundido pasa a los cofres pegados al horno (lo que funde no se vuelve a tomar: no es fundible)
                     val listo = horno.getItem(2)
                     if (!listo.isEmpty) {
                         var resto = listo.copy()
@@ -643,7 +721,7 @@ object Maquinas {
         "cantera" -> listOf(Ranura("cincel", m.vel, TIEMPOS_CANTERA.size - 1), Ranura("veta", m.vetas, 3), Ranura("brazo", if (m.auto) 1 else 0, 1))
         "fuente" -> listOf(Ranura("corazon", if (m.corazon) 1 else 0, 1))
         "tanque" -> listOf(Ranura("aro", m.nivelTanque, CAPACIDADES.size - 1))
-        "horno" -> listOf(Ranura("boca", m.bocas, MAX_BOCAS))
+        "horno" -> listOf(Ranura("boca", m.bocas, MAX_BOCAS), Ranura("wayra", if (m.wayra) 1 else 0, 1))
         else -> emptyList()
     }
 
@@ -662,7 +740,7 @@ object Maquinas {
         for (i in 0 until gui.size) gui.setSlot(i, GuiUtil.relleno())
         gui.setSlot(4, GuiElementBuilder(icono(m)).setName(GuiUtil.texto(nombre(m.tipo), ChatFormatting.GOLD))
             .setLore(lineasEstado(nivel, m).map { GuiUtil.texto(it, ChatFormatting.GRAY) }))
-        val lugares = when (m.tipo) { "cantera" -> intArrayOf(10, 12, 14); "fuente" -> intArrayOf(11); else -> intArrayOf(13) }
+        val lugares = when (m.tipo) { "cantera" -> intArrayOf(10, 12, 14); "fuente" -> intArrayOf(11); "horno" -> intArrayOf(11, 15); else -> intArrayOf(13) }
         ranuras(m).forEachIndexed { i, r ->
             val base = itemMejora(nivel.server, r.id) ?: ItemStack(Items.PAPER)
             base.count = r.puestas.coerceIn(1, 64)
@@ -676,7 +754,7 @@ object Maquinas {
             gui.setSlot(lugares[i], b)
         }
         if (m.tipo == "cantera" || m.tipo == "fuente") gui.setSlot(if (grande) 16 else 15, botonQuipu(j, nivel, m))
-        if (grande) ponerFiltro(j, nivel, m, gui)
+        if (grande) { ponerFiltro(j, nivel, m, gui); gui.setSlot(28, botonAnexo(j, nivel, m)) }
         val guarda = if (m.tipo == "tanque") "sus mejoras y su lava" else "sus mejoras"
         gui.setSlot(if (grande) 31 else 22, GuiUtil.boton(ItemStack(Items.BARRIER), "Desarmar", listOf("Vuelve a ser maqueta", "La maqueta guarda $guarda"), ChatFormatting.RED) {
             GuiUtil.confirmar(j, "¿Desarmar?", icono(m), listOf(nombre(m.tipo), "La maqueta guarda $guarda"),
@@ -695,6 +773,7 @@ object Maquinas {
             "brazo" -> if (m.auto) { m.auto = false; true } else false
             "corazon" -> if (m.corazon) { m.corazon = false; true } else false
             "boca" -> if (m.bocas > 0) { m.bocas--; true } else false
+            "wayra" -> if (m.wayra) { m.wayra = false; true } else false
             "aro" -> when {
                 m.nivelTanque == 0 -> false
                 m.lava > CAPACIDADES[m.nivelTanque - 1] -> {
@@ -719,9 +798,9 @@ object Maquinas {
     private fun reparar(nivel: ServerLevel, m: Maquina) {
         val esperado = HashMap<BlockPos, BlockState>()
         piezas(m).forEach { (p, st) -> esperado[p] = st }
-        for (dy in 0 until m.alto()) for (dx in -1..1) for (dz in -1..1) {
+        for (dy in 0 until m.alto()) for (dx in -1..m.maxDx()) for (dz in -1..1) {
             val p = m.origen().offset(dx, dy, dz)
-            if (p == m.nucleo() || !nivel.isLoaded(p)) continue
+            if (p == m.nucleo() || (m.modulo > 0 && m.tipo == "cantera" && p == m.nucleo2()) || !nivel.isLoaded(p)) continue
             if (dx == 0 && dz == 0 && (m.tipo == "horno" || (m.tipo == "tanque" && dy in 1..3))) continue
             val st = nivel.getBlockState(p)
             val e = esperado[p]
@@ -739,17 +818,17 @@ object Maquinas {
 
     private const val ADORNO = "maq_adorno"
     /** Cambia cuando cambia el aspecto de los adornos: los viejos se reemplazan solos. */
-    private const val ADORNO_VERSION = "maq_adorno_v2"
+    private const val ADORNO_VERSION = "maq_adorno_v3"
     private var segundos = 0
     private val revisadas = HashSet<String>()
 
     private fun clave(m: Maquina) = "maq_${m.dim.substringAfter(':')}_${m.x}_${m.y}_${m.z}"
-    private fun caja(m: Maquina) = AABB(m.x - 2.0, m.y - 1.0, m.z - 2.0, m.x + 3.0, m.y + m.alto() + 3.0, m.z + 3.0)
+    private fun caja(m: Maquina) = AABB(m.x - 2.0, m.y - 1.0, m.z - 2.0, m.x + m.maxDx() + 2.0, m.y + m.alto() + 3.0, m.z + 3.0)
     private fun modelo(id: String) = "{id:\"minecraft:paper\",count:1,components:{\"minecraft:item_model\":\"banco_minecraft_per:$id\"}}"
 
     private data class Adorno(
         val item: String, val x: Double, val y: Double, val z: Double, val yaw: Float, val escala: Float,
-        val modo: String = "fixed", val giro: String = "[0f,1f,0f,0f]", val extra: String = "", val brazo: Boolean = false,
+        val modo: String = "fixed", val giro: String = "[0f,1f,0f,0f]", val extra: String = "", val etiqueta: String = "",
     )
 
     private fun adornos(m: Maquina): List<Adorno> {
@@ -766,16 +845,23 @@ object Maquinas {
                     r += Adorno(modelo("cincel_apu"), cx + dx, y + 4.45, cz + dz, yaw, 0.9f)
                 }
                 // vetas: trozos de mineral en las aberturas del primer piso
-                val vetas = listOf(Triple(0, -1, "copper_ore"), Triple(1, 0, "iron_ore"), Triple(-1, 0, "gold_ore"), Triple(0, 1, "raw_gold_block"))
-                val cuantas = when (m.vetas) { 1 -> 1; 2 -> 3; 3 -> 4; else -> 0 }
+                val vetas = listOf(Triple(0, -1, "copper_ore"), Triple(1, 0, "iron_ore"), Triple(-1, 0, "gold_ore"))
+                val cuantas = when (m.vetas) { 1 -> 1; 2, 3 -> 3; else -> 0 }
                 for (i in 0 until cuantas) {
                     val (dx, dz, b) = vetas[i]
                     r += Adorno("{id:\"minecraft:$b\",count:1}", cx + dx * 1.2, y + 1.2, cz + dz * 1.2, i * 37f, 0.4f, "none", "[0f,0f,0f,1f]")
                 }
-                if (m.auto) {
-                    val yaw = runCatching { Direction.valueOf(m.facing.uppercase()).toYRot() }.getOrDefault(0f)
-                    r += Adorno(modelo("brazo_cantera"), cx, y + BRAZO_ARRIBA, cz, yaw, 1.1f, brazo = true)
+                // vetas III: una tumbaga incrustada en el piso, medio enterrada
+                if (m.vetas >= 3) r += Adorno(modelo("tumbaga"), cx, y + 1.12, cz + 1.2, 15f, 0.6f, giro = "[0.5f,0f,0f,0.866f]")
+                val yaw = runCatching { Direction.valueOf(m.facing.uppercase()).toYRot() }.getOrDefault(0f)
+                if (m.auto) r += Adorno(modelo("brazo_cantera"), cx, y + BRAZO_ARRIBA, cz, yaw, 1.1f, etiqueta = "brazo")
+                // anexo: polvo de diamante y, si es estelar, amatista
+                if (m.modulo >= 1) {
+                    r += Adorno("{id:\"minecraft:deepslate_diamond_ore\",count:1}", cx + 2, y + 1.2, cz - 1.2, 20f, 0.4f, "none", "[0f,0f,0f,1f]")
+                    r += Adorno(modelo("tumbaga"), cx + 3.2, y + 1.12, cz, 75f, 0.6f, giro = "[0.5f,0f,0f,0.866f]")
+                    if (m.auto) r += Adorno(modelo("brazo_cantera"), cx + 2, y + BRAZO_ARRIBA, cz, yaw, 1.1f, etiqueta = "brazo2")
                 }
+                if (m.modulo >= 2) r += Adorno("{id:\"minecraft:amethyst_block\",count:1}", cx + 2, y + 1.2, cz + 1.2, 50f, 0.4f, "none", "[0f,0f,0f,1f]")
             }
             "horno" -> {
                 // bocas extra: hornitos en las aberturas (no delante del horno) y sobre dos esquinas del techo
@@ -815,7 +901,7 @@ object Maquinas {
         quitarAdornos(nivel, m)
         val c = clave(m)
         for (a in adornos(m)) {
-            val tags = "\"$ADORNO\",\"$ADORNO_VERSION\",\"$c\"" + if (a.brazo) ",\"${c}_brazo\"" else ""
+            val tags = "\"$ADORNO\",\"$ADORNO_VERSION\",\"$c\"" + if (a.etiqueta.isNotEmpty()) ",\"${c}_${a.etiqueta}\"" else ""
             val nbt = "{Tags:[$tags],Rotation:[${a.yaw}f,0f],teleport_duration:3,view_range:1.5f,item_display:\"${a.modo}\",${a.extra}" +
                 "item:${a.item},transformation:{left_rotation:${a.giro},right_rotation:[0f,0f,0f,1f],translation:[0f,0f,0f]," +
                 "scale:[${a.escala}f,${a.escala}f,${a.escala}f]}}"
@@ -839,14 +925,18 @@ object Maquinas {
     private val golpes = ArrayList<Animacion>()
     private val vuelos = ArrayList<Animacion>()
 
-    private fun idItem(b: String) = when (b) {
-        "carbon" -> "coal"; "hierro" -> "raw_iron"; "cobre" -> "raw_copper"; "oro" -> "raw_gold"; "tumbaga" -> "raw_gold"; else -> "cobblestone"
+    private fun itemVuelo(b: String) = when (b) {
+        "tumbaga" -> modelo("tumbaga")
+        "diamante" -> modelo("polvo_diamante")
+        "estelar" -> modelo("polvo_estelar")
+        else -> "{id:\"minecraft:" + when (b) {
+            "carbon" -> "coal"; "hierro" -> "raw_iron"; "cobre" -> "raw_copper"; "oro" -> "raw_gold"; else -> "cobblestone"
+        } + "\",count:1}"
     }
 
-    private fun picar(nivel: ServerLevel, m: Maquina, sale: String, destino: BlockPos?) {
-        val n = m.nucleo()
+    private fun picar(nivel: ServerLevel, m: Maquina, sale: String, destino: BlockPos?, n: BlockPos, brazo: String) {
         val c = clave(m)
-        nivel.getEntitiesOfClass(Display::class.java, caja(m)) { "${c}_brazo" in it.entityTags() }.firstOrNull()?.let { d ->
+        nivel.getEntitiesOfClass(Display::class.java, caja(m)) { "${c}_$brazo" in it.entityTags() }.firstOrNull()?.let { d ->
             d.snapTo(d.x, m.y + BRAZO_ARRIBA - 0.55, d.z, d.yRot, 0f)
             golpes += Animacion(nivel, d.uuid, null, m.y + BRAZO_ARRIBA)
         }
@@ -861,7 +951,7 @@ object Maquinas {
         val desde = Vec3(n.x + 0.5, n.y + 1.3, n.z + 0.5)
         val etiqueta = "maq_vuelo_${UUID.randomUUID().toString().take(8)}"
         comando(nivel, desde, "summon minecraft:item_display ${desde.x} ${desde.y} ${desde.z} {Tags:[\"$ADORNO\",\"$etiqueta\"]," +
-            "teleport_duration:8,billboard:\"center\",item:{id:\"minecraft:${idItem(sale)}\",count:1}," +
+            "teleport_duration:8,billboard:\"center\",item:${itemVuelo(sale)}," +
             "transformation:{left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],translation:[0f,0f,0f],scale:[0.45f,0.45f,0.45f]}}")
         val d = nivel.getEntitiesOfClass(Display::class.java, AABB.ofSize(desde, 1.0, 1.0, 1.0)) { etiqueta in it.entityTags() }.firstOrNull() ?: return
         vuelos += Animacion(nivel, d.uuid, Vec3(destino.x + 0.5, destino.y + 1.1, destino.z + 0.5), 0.0)
@@ -926,6 +1016,11 @@ object Maquinas {
     // ---------- quipu y filtro ----------
 
     private const val MAX_BOCAS = 5
+    /** Un balde de lava: 20000 ticks de fuego, como en el horno normal (100 cosas). */
+    private const val TICKS_LAVA = 20_000
+    private const val SEGUNDOS_SOL = 30
+    const val PRECIO_ANEXO = 40_000_000L
+    const val PRECIO_ESTELAR = 80_000_000L
     private const val SEGUNDOS_POR_FUNDIDO = 10
     private const val ALCANCE_QUIPU = 64
 
@@ -981,6 +1076,7 @@ object Maquinas {
     private val FILTRO = listOf(
         Triple("piedra", Items.COBBLESTONE, "Piedra"), Triple("cobre", Items.RAW_COPPER, "Cobre"),
         Triple("hierro", Items.RAW_IRON, "Hierro"), Triple("oro", Items.RAW_GOLD, "Oro"),
+        Triple("tumbaga", Items.ECHO_SHARD, "Tumbaga (si el horno tiene 5 bocas)"),
     )
 
     private fun botonQuipu(j: ServerPlayer, nivel: ServerLevel, m: Maquina): GuiElementBuilder {
@@ -1023,6 +1119,113 @@ object Maquinas {
                 menu(j, nivel, m)
             })
             gui.setSlot(21 + i, b)
+        }
+    }
+
+    // ---------- entregar, alimentar el horno, anexo y ambiente ----------
+
+    /** Manda lo que picó la cantera: a su huayrachina (si el filtro lo pide) o a sus cofres. Devuelve a dónde fue. */
+    private fun entregar(nivel: ServerLevel, m: Maquina, sale: String, servidor: MinecraftServer): BlockPos? {
+        var resto = itemDe(sale, servidor)
+        if (sale in m.filtro.split(',')) hornoUnido(nivel, m)?.let { (h, horno) ->
+            if (sale != "tumbaga" || h.bocas >= MAX_BOCAS) {
+                val entrada = horno.getItem(0)
+                if (entrada.isEmpty) { horno.setItem(0, resto); resto = ItemStack.EMPTY }
+                else if (ItemStack.isSameItemSameComponents(entrada, resto) && entrada.count < 64) { entrada.grow(1); resto = ItemStack.EMPTY }
+                if (resto.isEmpty) { horno.setChanged(); return h.nucleo() }
+            }
+        }
+        // llena los cofres en orden; si todos están llenos, lo que no entra se descarta (nada cae al piso)
+        var destino: BlockPos? = null
+        for ((pos, cofre) in cofres(nivel, m)) {
+            val antes = resto.count
+            resto = HopperBlockEntity.addItem(null, cofre, resto, null)
+            cofre.setChanged()
+            if (destino == null && (resto.isEmpty || resto.count < antes)) destino = pos
+            if (resto.isEmpty) break
+        }
+        return destino
+    }
+
+    private fun fundible(m: Maquina, s: ItemStack) = fundido(s) != null || (m.bocas >= MAX_BOCAS && esTumbaga(s))
+
+    /** La huayrachina toma de sus cofres pegados lo que sabe fundir (piedra, minerales crudos, arena…). */
+    private fun alimentar(nivel: ServerLevel, m: Maquina, horno: AbstractFurnaceBlockEntity) {
+        val entrada = horno.getItem(0)
+        if (!entrada.isEmpty && (entrada.count >= 64 || !fundible(m, entrada))) return
+        for ((_, c) in cofres(nivel, m)) for (i in 0 until c.containerSize) {
+            val s = c.getItem(i)
+            if (s.isEmpty || !fundible(m, s)) continue
+            if (!entrada.isEmpty && !ItemStack.isSameItemSameComponents(entrada, s)) continue
+            val n = minOf(s.count, 64 - entrada.count)
+            if (n <= 0) return
+            if (entrada.isEmpty) horno.setItem(0, s.copyWithCount(n)) else entrada.grow(n)
+            s.shrink(n)
+            c.setChanged()
+            horno.setChanged()
+            return
+        }
+    }
+
+    private fun botonAnexo(j: ServerPlayer, nivel: ServerLevel, m: Maquina): GuiElementBuilder {
+        val (titulo, lore, precio) = when (m.modulo) {
+            0 -> Triple("Ampliar: anexo de la cantera", listOf(
+                "Un segundo bloque que sale solo, pegado hacia el este",
+                "Ya no da cobre: más tumbaga, oro, hierro y polvo de diamante",
+                "Necesita libre 2 de ancho x 3 x 4 de alto al este",
+                "Queda para siempre (la maqueta lo guarda)",
+            ), PRECIO_ANEXO)
+            1 -> Triple("Mejorar: anexo estelar", listOf("El anexo además da polvo estelar", "y un poco más de tumbaga y diamante"), PRECIO_ESTELAR)
+            else -> Triple("Anexo estelar: listo", listOf("La cantera ya está al máximo"), 0L)
+        }
+        val icono = ItemStack(if (m.modulo >= 2) Items.AMETHYST_CLUSTER else Items.DEEPSLATE_DIAMOND_ORE)
+        if (precio == 0L) return GuiElementBuilder(icono).setName(GuiUtil.texto(titulo, ChatFormatting.LIGHT_PURPLE)).setLore(lore.map { GuiUtil.texto(it, ChatFormatting.GRAY) })
+        return GuiUtil.boton(icono, titulo, lore + "Precio: ${Formato.soles(precio)}", ChatFormatting.LIGHT_PURPLE) {
+            GuiUtil.confirmar(j, "¿$titulo?", icono.copy(), listOf(titulo, "Precio: ${Formato.soles(precio)}", "Saldo: ${Formato.soles(Operaciones.saldo(j))}"),
+                alConfirmar = { j.closeContainer(); ampliar(j, nivel, m) },
+                alCancelar = { menu(j, nivel, m) })
+        }
+    }
+
+    private fun ampliar(j: ServerPlayer, nivel: ServerLevel, m: Maquina) {
+        if (m !in lista || m.tipo != "cantera" || m.modulo >= 2) return
+        if (m.modulo == 0) {
+            val zona = (2..3).flatMap { dx -> (-1..1).flatMap { dz -> (0 until m.alto()).map { dy -> m.origen().offset(dx, dy, dz) } } }
+            if (zona.any { !nivel.getBlockState(it).canBeReplaced() } || zona.any { en(nivel, it) != null } || zona.any { Proteccion.zonaEn(nivel, it) != null }) {
+                aviso(j, "No hay espacio: el anexo crece hacia el este (hacia donde sale el Inti), 2 bloques de ancho, 3 de fondo y 4 de alto.", ChatFormatting.RED)
+                return
+            }
+        }
+        val precio = if (m.modulo == 0) PRECIO_ANEXO else PRECIO_ESTELAR
+        val cobro = Operaciones.cobrar(j, precio, if (m.modulo == 0) "ANEXO CANTERA" else "ANEXO ESTELAR")
+        if (!cobro.ok) { GuiUtil.avisar(j, cobro); return }
+        m.modulo++
+        if (m.modulo == 1) {
+            for (dx in 2..3) for (dz in -1..1) for (dy in 0 until m.alto()) {
+                val p = m.origen().offset(dx, dy, dz)
+                if (!nivel.getBlockState(p).isAir) nivel.setBlock(p, Blocks.AIR.defaultBlockState(), 3)
+            }
+            m.bloque2 = "piedra"; m.falta2 = 0
+        }
+        piezas(m).forEach { (p, st) -> if (nivel.getBlockState(p).block != st.block) nivel.setBlock(p, st, 3) }
+        guardar()
+        decorar(nivel, m)
+        nivel.playSound(null, m.nucleo(), SoundEvents.ANVIL_USE, SoundSource.BLOCKS, 0.8f, 0.9f)
+        nivel.sendParticles(ParticleTypes.HAPPY_VILLAGER, m.x + 2.5, m.y + 2.0, m.z + 0.5, 30, 1.0, 1.0, 1.0, 0.05)
+        aviso(j, (if (m.modulo == 1) "¡Cantera ampliada con su anexo!" else "¡Anexo estelar listo!") + " ${cobro.mensaje}", ChatFormatting.GREEN)
+    }
+
+    /** Vapor del tanque con lava, fuego en la fuente: solo si hay jugadores cerca. */
+    private fun ambiente(nivel: ServerLevel, m: Maquina) {
+        val cx = m.x + 0.5
+        val cz = m.z + 0.5
+        if (nivel.players().none { it.distanceToSqr(cx, m.y + 2.0, cz) < 48.0 * 48.0 }) return
+        when (m.tipo) {
+            "tanque" -> if (m.lava > 0) nivel.sendParticles(ParticleTypes.WHITE_SMOKE, cx, m.y + 5.15, cz, 3, 0.35, 0.05, 0.35, 0.01)
+            "fuente" -> {
+                nivel.sendParticles(ParticleTypes.FLAME, cx, m.y + 1.05, cz, 4, 0.9, 0.02, 0.9, 0.003)
+                if (Random.nextDouble() < 0.35) nivel.sendParticles(ParticleTypes.LAVA, cx, m.y + 1.2, cz, 1, 0.6, 0.0, 0.6, 0.0)
+            }
         }
     }
 }

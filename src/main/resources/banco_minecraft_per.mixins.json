@@ -6,7 +6,8 @@
     "AnvilMenuMixin",
     "ExplosionMixin",
     "ConsumableMixin",
-    "DedicatedServerMixin"
+    "DedicatedServerMixin",
+    "AbstractFurnaceAccessor"
   ],
   "injectors": {
     "defaultRequire": 0

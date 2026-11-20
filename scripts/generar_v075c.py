@@ -1,4 +1,5 @@
-"""Texturas de la v0.7.5 (tercera tanda): quipu (une máquinas) y boca de horno (mejora de la Huayrachina).
+"""Texturas de la v0.7.5 (tercera tanda): quipu, boca de horno, soplo del wayra, sol de tumbaga,
+polvo de diamante y polvo estelar.
 Uso: python generar_v075c.py <resourcepack>
 """
 import json
@@ -71,6 +72,56 @@ def boca_horno():
     return contornear(img, hexc("2b1d14"))
 
 
+def soplo_wayra():
+    """Remolinos de viento andino."""
+    img = lienzo(); px = img.load()
+    for k, (cy, r0, c) in enumerate(((11, 7, "dff3ff"), (19, 9, "a9dcf5"), (25, 5, "7cc4e8"))):
+        for t in range(0, 300):
+            a = t / 300 * 2 * math.pi * 1.3
+            r = r0 * (1 - t / 420)
+            x = int(round(16 + (k - 1) * 3 + math.cos(a) * r))
+            y = int(round(cy + math.sin(a) * r * 0.45))
+            if 0 <= x < T and 0 <= y < T:
+                px[x, y] = hexc(c)
+    return contornear(img, hexc("2b4a63"))
+
+
+def sol_tumbaga():
+    """Lingote de tumbaga con un sol grabado."""
+    img = lienzo(); px = img.load()
+    for y in range(10, 25):
+        for x in range(4, 28):
+            borde = min(x - 4, 27 - x) < (y - 10) // 3 + 1 if y < 14 else False
+            if borde:
+                continue
+            luz = (x - y) / 30
+            px[x, y] = hexc("ffe08a") if luz > 0.25 else hexc("f0a83c") if luz > -0.15 else hexc("c0682a")
+    for t in range(16):
+        a = t / 16 * 2 * math.pi
+        for r in (3, 4):
+            x = int(round(16 + math.cos(a) * r)); y = int(round(17 + math.sin(a) * r * 0.8))
+            px[x, y] = hexc("fff6c8")
+    for y in range(15, 20):
+        for x in range(14, 19):
+            if math.hypot(x - 16, y - 17) <= 2:
+                px[x, y] = hexc("ffd23f")
+    return contornear(img, hexc("5a2a10"))
+
+
+def polvo(c1, c2, brillo):
+    """Montoncito de polvo con destellos."""
+    img = lienzo(); px = img.load()
+    for y in range(14, 27):
+        for x in range(5, 27):
+            if (x - 16) ** 2 / 110 + (y - 27) ** 2 / 150 <= 1:
+                px[x, y] = hexc(c1) if (x * 7 + y * 3) % 5 else hexc(c2)
+    for (x, y) in ((10, 9), (21, 7), (16, 12), (25, 13), (7, 15)):
+        px[x, y] = hexc(brillo)
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            px[x + dx, y + dy] = hexc(c2)
+    return contornear(img, hexc("1a1418"))
+
+
 def guardar_item(clave, img):
     img.save(os.path.join(NS, "textures", "item", f"{clave}.png"))
     with open(os.path.join(NS, "models", "item", f"{clave}.json"), "w", encoding="utf-8") as fh:
@@ -86,3 +137,7 @@ if __name__ == "__main__":
         os.makedirs(os.path.join(NS, d), exist_ok=True)
     guardar_item("quipu", quipu())
     guardar_item("boca_horno", boca_horno())
+    guardar_item("soplo_wayra", soplo_wayra())
+    guardar_item("sol_tumbaga", sol_tumbaga())
+    guardar_item("polvo_diamante", polvo("6fe3e1", "2fa8b8", "ffffff"))
+    guardar_item("polvo_estelar", polvo("b388ff", "6a3fb8", "fff6a0"))

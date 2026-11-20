@@ -395,6 +395,9 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
                 Oferta("boca", "Boca de horno", mejora("boca", "boca_horno", "Boca de horno",
                     "La Huayrachina funde uno más a la vez", "Hasta 5 bocas: 6 a la vez"),
                     precio = 3_000_000, descripcion = "Huayrachina más rápida"),
+                Oferta("wayra", "Soplo del Wayra", mejora("wayra", "soplo_wayra", "Soplo del Wayra",
+                    "El viento de los Andes aviva la Huayrachina:", "funde 3 veces más rápido. Una por horno"),
+                    precio = 6_000_000, descripcion = "Huayrachina 3 veces más rápida"),
             ),
         )
 
