@@ -4,7 +4,8 @@
   "compatibilityLevel": "JAVA_25",
   "mixins": [
     "AnvilMenuMixin",
-    "ExplosionMixin"
+    "ExplosionMixin",
+    "ConsumableMixin"
   ],
   "injectors": {
     "defaultRequire": 0

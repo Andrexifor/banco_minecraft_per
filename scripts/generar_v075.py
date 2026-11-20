@@ -151,6 +151,34 @@ def pluma():
     return contornear(img, hexc("0d0b0e"))
 
 
+def pocion(liquido, liquido_s, sello):
+    """Frasco andino de cerámica (aríbalo chico) con ventana de vidrio que deja ver el líquido."""
+    img = lienzo(); px = img.load()
+    for y in range(T):
+        for x in range(T):
+            dx, dy = x - 15.5, y - 19.5
+            cuerpo = (dx / 9.5) ** 2 + (dy / 9) ** 2 <= 1
+            cuello = abs(dx) <= 2.6 and 5 <= y <= 11
+            if cuerpo:
+                vidrio = (dx / 6.5) ** 2 + ((dy + 1) / 6) ** 2 <= 1
+                if vidrio:
+                    c = liquido if dy > -2 else (hexc("dfe9f0") if dy < -4 else liquido_s)
+                    if (x + y) % 9 == 0 and dy > 0:
+                        c = hexc("ffffff")
+                else:
+                    c = hexc("b5643a") if (x // 3 + y // 3) % 2 else hexc("8e4a2a")   # barro con greca
+                px[x, y] = c
+            elif cuello:
+                px[x, y] = hexc("b5643a")
+    for x in range(12, 20):  # tapón y sello
+        for y in range(2, 5):
+            px[x, y] = hexc("8a5a32")
+    px[15, 3] = sello; px[16, 3] = sello
+    for x, y in ((6, 15), (25, 15)):  # asas
+        px[x, y] = hexc("8e4a2a"); px[x, y + 1] = hexc("8e4a2a")
+    return contornear(img, hexc("3a1e10"))
+
+
 # ---------------------------------------------------------------- cóndor 3D
 def piel_condor():
     """Atlas 32x32: plumaje negro, collar blanco, cabeza roja, pico, alas con banda blanca."""
@@ -232,6 +260,10 @@ def main():
     guardar_item("flor_traslado", flor(False))
     guardar_item("flor_llena", flor(True))
     guardar_item("pluma_condor", pluma())
+    guardar_item("pocion_amparo", pocion(hexc("f4c430"), hexc("c8961e"), hexc("ffffff")))
+    guardar_item("pocion_regreso", pocion(hexc("3f8fe0"), hexc("2a5fa8"), hexc("ffd23f")))
+    guardar_item("pocion_muerte", pocion(hexc("5a1e6b"), hexc("2a0f3d"), hexc("d7263d")))
+    guardar_item("pocion_buscador", pocion(hexc("2fd07a"), hexc("1d8a50"), hexc("8ef3ff")))
     piel_condor().save(os.path.join(NS, "textures", "item", "condor_piel.png"))
     guardar_item("condor", modelo=modelo_condor())
     print("v0.7.5 lista")

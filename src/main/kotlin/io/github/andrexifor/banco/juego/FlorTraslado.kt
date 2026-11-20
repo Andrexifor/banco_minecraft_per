@@ -36,6 +36,9 @@ object FlorTraslado {
     private fun datos(s: ItemStack): CompoundTag? =
         s.get(DataComponents.CUSTOM_DATA)?.copyTag()?.getCompoundOrEmpty(MARCA)?.takeIf { it.contains("flor") }
 
+    /** ¿Es una flor que lleva un animal adentro? */
+    fun llena(s: ItemStack): Boolean = !s.isEmpty && datos(s)?.contains("animal") == true
+
     private fun aviso(j: ServerPlayer, t: String, c: ChatFormatting) = j.sendSystemMessage(Component.literal(t).withStyle(c))
 
     fun registrarEventos() {

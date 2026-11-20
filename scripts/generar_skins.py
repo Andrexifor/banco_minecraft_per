@@ -303,7 +303,32 @@ def criador():
     return s
 
 
-SKINS = {"criador": criador, "banquero": banquero, "tendero": tendero, "herrero": herrero, "mercader": mercader,
+# ------------------------------------------------------------------ Kallawaya (curandero andino)
+def kallawaya():
+    s = Skin()
+    cabeza_base(s)
+    FIELTRO = hexc("4a3222"); FIELTRO_S = hexc("33221a"); VINO = hexc("7a1e2c"); VINO_S = hexc("5a1420")
+    # sombrero de fieltro de ala ancha con cinta de colores (capa exterior de la cabeza)
+    s.todo("sombrero", lambda x, y: (FIELTRO if y < 2 else (ROJO if y == 2 and x % 4 < 2 else (AMARILLO if y == 2 else (FIELTRO_S if y == 3 else None)))),
+           lambda x, y: FIELTRO)
+    # poncho color vino con franjas finas y, cruzando el pecho, la correa de su chuspa de hierbas
+    def poncho(x, y):
+        if (x + y) in (4, 5) and x < 8:
+            return CUERO
+        if y in (3, 8):
+            return AMARILLO
+        if y in (4, 9):
+            return VERDE
+        return VINO if y < 11 else VINO_S
+    s.todo("cuerpo", poncho, lambda x, y: VINO)
+    # chuspa de colores colgando a un costado (capa exterior del cuerpo)
+    s.cara("chaqueta", "frente", lambda x, y, W, H: ([ROJO, AMARILLO, VERDE, TURQ][(x + y) % 4] if (5 <= x <= 7 and 7 <= y <= 10) else None))
+    brazos(s, VINO, 7, AMARILLO)
+    piernas(s, NEGRO, MARRON_S, banda=VINO_S)
+    return s
+
+
+SKINS = {"kallawaya": kallawaya, "criador": criador, "banquero": banquero, "tendero": tendero, "herrero": herrero, "mercader": mercader,
          "bromista": bromista, "contrabandista": contrabandista}
 for nombre, fn in SKINS.items():
     fn().save(nombre)
@@ -340,7 +365,7 @@ try:
     fuente = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 22)
 except OSError:
     fuente = ImageFont.load_default()
-titulos = {"criador": "Criador", "banquero": "Banquero", "tendero": "Tendero", "herrero": "Herrero", "mercader": "Mercader legendario",
+titulos = {"kallawaya": "Kallawaya", "criador": "Criador", "banquero": "Banquero", "tendero": "Tendero", "herrero": "Herrero", "mercader": "Mercader legendario",
            "bromista": "Bromas", "contrabandista": "Mercado negro"}
 x = 20
 for nombre in SKINS:

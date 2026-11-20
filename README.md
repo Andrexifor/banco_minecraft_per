@@ -184,6 +184,12 @@ Si un ítem está mal escrito, no aparece en el menú (y sale un aviso en el log
   a 3–5 bloques del dueño y ataca a los monstruos cercanos; no se monta ni recibe daño. Clic derecho a la pluma lo llama
   o lo despide; llamado, vuelve solo al reconectar, al reaparecer tras morir o tras reiniciar el servidor
   (`banco_minecraft_per/condores.txt`). Texturas: `scripts/generar_v075.py`.
+- **Kallawaya** (tipo `kallawaya`, catálogo `pociones.json`): curandero andino que vende pociones
+  (el efecto lo aplica un mixin de `Consumable` al terminar de tomarlas):
+  **amparo** (hasta la próxima muerte conservas armadura, armas, mochilas y flores con animales),
+  **regreso** (a tu cama a los 2 s; si no hay cama, no se gasta), **último aliento** (a donde moriste,
+  con resistencia al fuego y caída lenta) y **buscador** (20 s viendo a través de las paredes los minerales
+  del chunk; solo los ve quien la toma).
 - **Mercado negro (Nether):** se desbloquea **para siempre** la primera vez que el jugador lleva puesto
   el set completo de armadura legendaria (logro "Los dioses te ven de más cerca"). La puerta sellada
   (`puerta_negra`) lleva adentro y la salida (`salida_negra`) devuelve a la sala del portal; los destinos

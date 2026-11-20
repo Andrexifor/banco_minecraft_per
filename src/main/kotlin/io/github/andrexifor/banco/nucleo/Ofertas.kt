@@ -300,6 +300,50 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
             ),
         )
 
+        // ---------- pociones del Kallawaya ----------
+
+        private fun pocion(id: String, nombre: String, color: String, vararg lineas: String) =
+            "minecraft:potion[" + listOf(
+                "item_model=\"banco_minecraft_per:pocion_$id\"",
+                "max_stack_size=16",
+                "tooltip_display={hidden_components:[\"minecraft:potion_contents\"]}",
+                nombre(nombre, color),
+                lore(*lineas),
+                "custom_data={$MARCA:{pocion:\"$id\"}}",
+            ).joinToString(",") + "]"
+
+        fun pocionesPorDefecto() = CatalogoOfertas(
+            mutableListOf(
+                Oferta(
+                    "amparo", "Poción de amparo",
+                    pocion("amparo", "Poción de amparo", "gold",
+                        "Hasta tu próxima muerte, al morir conservas:", "armadura, armas, mochilas y flores con animales",
+                        "Lo demás cae como siempre"),
+                    precio = 400_000, descripcion = "Al morir conservas armadura, armas y mochilas",
+                ),
+                Oferta(
+                    "regreso", "Poción de regreso",
+                    pocion("regreso", "Poción de regreso", "aqua",
+                        "Te lleva a tu cama a los 2 segundos", "Si no tienes cama, no se gasta"),
+                    precio = 120_000, descripcion = "Te lleva a tu cama",
+                ),
+                Oferta(
+                    "muerte", "Poción del último aliento",
+                    pocion("muerte", "Poción del último aliento", "dark_purple",
+                        "Te lleva a donde moriste por última vez", "Llegas con resistencia al fuego y caída lenta",
+                        "Si no hay lugar al que volver, no se gasta"),
+                    precio = 250_000, descripcion = "Te lleva a donde moriste",
+                ),
+                Oferta(
+                    "buscador", "Poción del buscador",
+                    pocion("buscador", "Poción del buscador", "green",
+                        "20 segundos viendo a través de las paredes", "los minerales del chunk donde estás",
+                        "Solo tú los ves"),
+                    precio = 80_000, descripcion = "Muestra los minerales del chunk por 20 s",
+                ),
+            ),
+        )
+
         fun contrabandoPorDefecto() = CatalogoOfertas(
             mutableListOf(
                 Oferta("elitros", "Élitros", "minecraft:elytra", precio = 3_000_000, descripcion = "Recién traídos del End"),

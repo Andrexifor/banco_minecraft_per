@@ -21,6 +21,7 @@ enum class TipoNpc(val id: String, val nombre: String, val profesion: String) {
     BROMISTA("bromista", "Mercader de bromas", "minecraft:cleric"),
     CRIADOR("criador", "Criador de animales", "minecraft:shepherd"),
     CONTRABANDISTA("contrabandista", "Mercado negro", "minecraft:nitwit"),
+    KALLAWAYA("kallawaya", "Kallawaya", "minecraft:cleric"),
     /** Puerta sellada del mercado negro (entidad de interacción): lleva adentro si está desbloqueado. */
     PUERTA_NEGRA("puerta_negra", "Puerta del mercado negro", "minecraft:nitwit"),
     /** Salida del mercado negro: lleva de vuelta a la sala del portal. */
@@ -97,6 +98,7 @@ object Npcs {
                 } else {
                     MercadoNegro.puertaEntrada(jugador) // muestra el mensaje de "no te reconoce"
                 }
+            TipoNpc.KALLAWAYA -> GuiOfertas.abrir(jugador, Tienda.POCIONES)
             TipoNpc.PUERTA_NEGRA -> MercadoNegro.puertaEntrada(jugador)
             TipoNpc.SALIDA_NEGRA -> MercadoNegro.puertaSalida(jugador)
         }
