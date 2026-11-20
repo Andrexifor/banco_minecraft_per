@@ -393,7 +393,7 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
                     "Funde sin carbón: toma lava de un tanque o de", "una Fuente del Misti tuya a 8 bloques o menos"),
                     precio = 4_000_000, descripcion = "Horno que funde con lava"),
                 Oferta("boca", "Boca de horno", mejora("boca", "boca_horno", "Boca de horno",
-                    "La Huayrachina funde uno más a la vez", "Hasta 5 bocas: 6 a la vez"),
+                    "Un horno más en la Huayrachina: funde uno más a la vez", "Hasta 9 bocas (10 hornos). Con 5, funde Tumbaga"),
                     precio = 3_000_000, descripcion = "Huayrachina más rápida"),
                 Oferta("wayra", "Soplo del Wayra", mejora("wayra", "soplo_wayra", "Soplo del Wayra",
                     "El viento de los Andes aviva la Huayrachina:", "funde 3 veces más rápido. Una por horno"),

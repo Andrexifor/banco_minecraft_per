@@ -109,7 +109,7 @@ class Almacen(private val dirConfig: Path, private val dirDatos: Path) {
 
     fun cargarAnimales(): CatalogoOfertas = cargarOfertas("animales.json", CatalogoOfertas::animalesPorDefecto)
 
-    fun cargarPirqa(): CatalogoOfertas = cargarOfertas("pirqa.json", CatalogoOfertas::pirqaPorDefecto, setOf("veta", "horno"), true)
+    fun cargarPirqa(): CatalogoOfertas = cargarOfertas("pirqa.json", CatalogoOfertas::pirqaPorDefecto, setOf("veta", "horno", "boca"), true)
 
     fun cargarPociones(): CatalogoOfertas = cargarOfertas("pociones.json", CatalogoOfertas::pocionesPorDefecto)
 

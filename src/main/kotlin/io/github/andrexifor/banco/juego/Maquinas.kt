@@ -15,6 +15,7 @@ import net.minecraft.ChatFormatting
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.component.DataComponents
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.particles.BlockParticleOption
 import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.nbt.CompoundTag
@@ -206,6 +207,8 @@ object Maquinas {
                 capa(1, Blocks.FURNACE.defaultBlockState().setValue(AbstractFurnaceBlock.FACING, dir), null, Blocks.STONE_BRICK_WALL.defaultBlockState())
                 capa(2, Blocks.CAMPFIRE.defaultBlockState(), null, Blocks.STONE_BRICK_WALL.defaultBlockState())
                 capa(3, null, null, Blocks.STONE_BRICK_SLAB.defaultBlockState())
+                // las bocas son hornos de verdad, puestos en la estructura
+                for ((p, mira) in bocasPos(m)) r += p to Blocks.FURNACE.defaultBlockState().setValue(AbstractFurnaceBlock.FACING, mira)
             }
             "tambo" -> {
                 // posada del Qhapaq Ñan: piso de andesita, piedra imán al centro, pilares de adobe y techo de paja
@@ -226,6 +229,7 @@ object Maquinas {
         "cobre" -> Blocks.COPPER_ORE
         "tumbaga" -> Blocks.RAW_GOLD_BLOCK
         "diamante" -> Blocks.DEEPSLATE_DIAMOND_ORE
+        "gema" -> Blocks.DIAMOND_ORE
         "estelar" -> Blocks.AMETHYST_BLOCK
         "nada" -> Blocks.AIR
         else -> Blocks.COBBLESTONE
@@ -242,12 +246,12 @@ object Maquinas {
         }
     }
 
-    /** Qué sale del anexo: ya no cobre; más tumbaga, polvo de diamante y, con el anexo estelar, polvo estelar. */
+    /** Qué sale del anexo: ya no cobre ni hierro; tumbaga, oro, polvo de diamante, algún diamante y, si es estelar, polvo estelar. */
     private fun sorteo2(modulo: Int): String {
         val r = Random.nextDouble()
         return when (modulo) {
-            1 -> when { r < 0.10 -> "tumbaga"; r < 0.14 -> "diamante"; r < 0.26 -> "oro"; r < 0.40 -> "hierro"; else -> "piedra" }
-            2 -> when { r < 0.12 -> "tumbaga"; r < 0.18 -> "diamante"; r < 0.20 -> "estelar"; r < 0.32 -> "oro"; r < 0.44 -> "hierro"; else -> "piedra" }
+            1 -> when { r < 0.10 -> "tumbaga"; r < 0.15 -> "diamante"; r < 0.17 -> "gema"; r < 0.32 -> "oro"; else -> "piedra" }
+            2 -> when { r < 0.12 -> "tumbaga"; r < 0.18 -> "diamante"; r < 0.21 -> "gema"; r < 0.24 -> "estelar"; r < 0.39 -> "oro"; else -> "piedra" }
             else -> "piedra"
         }
     }
@@ -260,12 +264,13 @@ object Maquinas {
         "tumbaga" -> tumbaga(servidor)
         "diamante" -> GuiOfertas.crearTexto(servidor, CATALOGO_POLVO_DIAMANTE) ?: ItemStack(Items.DIAMOND)
         "estelar" -> GuiOfertas.crearTexto(servidor, CATALOGO_POLVO_ESTELAR) ?: ItemStack(Items.GLOWSTONE_DUST)
+        "gema" -> ItemStack(Items.DIAMOND)
         else -> ItemStack(Items.COBBLESTONE)
     }
 
     /** Lo que se entrega como ítem propio al picar a mano (si no, el bloque daría lo suyo). */
     private fun especialAMano(b: String, servidor: MinecraftServer): ItemStack? = when (b) {
-        "tumbaga", "diamante", "estelar" -> itemDe(b, servidor)
+        "tumbaga", "diamante", "estelar", "gema" -> itemDe(b, servidor)
         else -> null
     }
 
@@ -370,7 +375,9 @@ object Maquinas {
             // 5) con un bloque en la mano se coloca al lado (así se ponen los cofres); dentro no, eso se frenó arriba
             if (s.item is BlockItem) return@register InteractionResult.PASS
             // 6) el horno de la huayrachina se abre normal
-            if (m.tipo == "horno" && golpe.blockPos == m.nucleo()) return@register InteractionResult.PASS
+            if (m.tipo == "horno" && (golpe.blockPos == m.nucleo() || nivel.getBlockState(golpe.blockPos).block is AbstractFurnaceBlock)) {
+                return@register InteractionResult.PASS
+            }
             // 7) con cualquier otra cosa (o nada): el menú de la máquina
             menu(jugador, nivel, m)
             InteractionResult.SUCCESS
@@ -444,6 +451,8 @@ object Maquinas {
         val zona = (-1..m.maxDx()).flatMap { dx -> (-1..1).flatMap { dz -> (0 until m.alto()).map { dy -> m.origen().offset(dx, dy, dz) } } }
         lista.remove(m)
         quitarAdornos(nivel, m)
+        // lo que haya dentro de sus hornos vuelve al jugador
+        zona.forEach { p -> (nivel.getBlockEntity(p) as? AbstractFurnaceBlockEntity)?.let { vaciar(j, it) } }
         zona.forEach { nivel.setBlock(it, Blocks.AIR.defaultBlockState(), 3) }
         guardar()
         val servidor = nivel.server
@@ -473,7 +482,11 @@ object Maquinas {
             mejora == "brazo" && m.tipo == "cantera" && !m.auto -> { m.auto = true; m.faltaAuto = 5; true }
             mejora == "corazon" && m.tipo == "fuente" && !m.corazon -> { m.corazon = true; true }
             mejora == "aro" && m.tipo == "tanque" && m.nivelTanque < CAPACIDADES.size - 1 -> { m.nivelTanque++; pintarTanque(nivel, m); true }
-            mejora == "boca" && m.tipo == "horno" && m.bocas < MAX_BOCAS -> { m.bocas++; true }
+            mejora == "boca" && m.tipo == "horno" && m.bocas < MAX_BOCAS -> {
+                m.bocas++
+                bocasPos(m).lastOrNull()?.let { (p, mira) -> nivel.setBlock(p, Blocks.FURNACE.defaultBlockState().setValue(AbstractFurnaceBlock.FACING, mira), 3) }
+                true
+            }
             mejora == "wayra" && m.tipo == "horno" && !m.wayra -> { m.wayra = true; true }
             else -> false
         }
@@ -552,12 +565,12 @@ object Maquinas {
             "Velocidad: ${TIEMPOS_CANTERA[m.vel]} s por bloque (cinceles: ${m.vel} de ${TIEMPOS_CANTERA.size - 1})",
             "Vetas: " + when (m.vetas) { 0 -> "ninguna (solo piedra)"; 1 -> "nivel 1 de 3 (cobre)"; 2 -> "nivel 2 de 3 (cobre, hierro, oro y tumbaga)"; else -> "nivel 3 de 3 (más hierro, oro y tumbaga)" },
             "Brazo de la cantera: ${if (m.auto) "sí (pica sola cada 5 s)" else "no"}",
-            "Anexo: " + when (m.modulo) { 0 -> "no"; 1 -> "sí (tumbaga y polvo de diamante)"; else -> "estelar (además polvo estelar)" },
+            "Anexo: " + when (m.modulo) { 0 -> "no"; 1 -> "sí (tumbaga, oro, polvo de diamante y diamante)"; else -> "estelar (además polvo estelar)" },
         )
         "fuente" -> listOf("Corazón del Misti: ${if (m.corazon) "sí (lava cada 2.5 min)" else "no (lava cada 5 min)"}")
         "tanque" -> listOf("Tamaño: ${CAPACIDADES[m.nivelTanque]} baldes (aros: ${m.nivelTanque} de ${CAPACIDADES.size - 1})", "Lava: ${m.lava} baldes")
         "horno" -> listOf(
-            "Bocas extra: ${m.bocas} de $MAX_BOCAS (funde ${1 + m.bocas} a la vez)",
+            "Bocas extra (hornos): ${m.bocas} de $MAX_BOCAS (funde ${1 + m.bocas} a la vez)",
             "Soplo del Wayra: " + if (m.wayra) "sí (3 veces más rápido)" else "no",
         )
         else -> emptyList()
@@ -588,7 +601,7 @@ object Maquinas {
                 }
                 r += "Funde lo de los cofres pegados y lo que le mande una cantera (quipu)"
                 r += "Lo listo va a los mismos cofres"
-                r += if (m.bocas >= MAX_BOCAS) "Con 5 bocas: funde Tumbaga en Sol de Tumbaga" else "Con 5 bocas podrá fundir Tumbaga en Sol de Tumbaga"
+                r += if (m.bocas >= BOCAS_SOL) "Con $BOCAS_SOL bocas o más: funde Tumbaga en Sol de Tumbaga" else "Con $BOCAS_SOL bocas podrá fundir Tumbaga en Sol de Tumbaga"
             }
         }
         return r
@@ -643,72 +656,7 @@ object Maquinas {
                     cambios = true
                 }
                 "tanque" -> if (segundos % 5 == 0) pintarTanque(nivel, m)
-                "horno" -> {
-                    val horno = nivel.getBlockEntity(m.nucleo()) as? AbstractFurnaceBlockEntity ?: continue
-                    val fuego = (horno as Any) as AbstractFurnaceAccessor
-                    // la lava entra directo al fuego: ya no hay baldes en el horno que se puedan sacar
-                    if (horno.getItem(1).`is`(Items.BUCKET)) horno.setItem(1, ItemStack.EMPTY)
-                    alimentar(nivel, m, horno)
-                    val entra = horno.getItem(0)
-                    if (!entra.isEmpty && fundible(m, entra) && fuego.litTimeRemaining <= 0 && tomarLava(nivel, m)) {
-                        fuego.litTimeRemaining = TICKS_LAVA
-                        fuego.litTotalTime = TICKS_LAVA
-                        val st = nivel.getBlockState(m.nucleo())
-                        if (st.hasProperty(AbstractFurnaceBlock.LIT) && !st.getValue(AbstractFurnaceBlock.LIT)) {
-                            nivel.setBlock(m.nucleo(), st.setValue(AbstractFurnaceBlock.LIT, true), 3)
-                        }
-                        horno.setChanged()
-                        cambios = true
-                    }
-                    val prendido = fuego.litTimeRemaining > 0
-                    val ritmo = if (m.wayra) 3 else 1
-                    // Soplo del Wayra: el horno de verdad avanza 3 veces más rápido
-                    if (prendido && m.wayra && !horno.getItem(0).isEmpty && fuego.cookingTotalTime > 0) {
-                        fuego.cookingTimer = minOf(fuego.cookingTimer + 40, fuego.cookingTotalTime - 1)
-                    }
-                    // Sol de Tumbaga: solo con las 5 bocas
-                    if (prendido && m.bocas >= MAX_BOCAS && esTumbaga(horno.getItem(0))) {
-                        m.progresoSol += ritmo
-                        val salida = horno.getItem(2)
-                        if (m.progresoSol >= SEGUNDOS_SOL && (salida.isEmpty || (esSolTumbaga(salida) && salida.count < 64))) {
-                            m.progresoSol = 0
-                            horno.getItem(0).shrink(1)
-                            if (salida.isEmpty) GuiOfertas.crearTexto(servidor, CATALOGO_SOL_TUMBAGA)?.let { horno.setItem(2, it) } else salida.grow(1)
-                            horno.setChanged()
-                            nivel.playSound(null, m.nucleo(), SoundEvents.BLAZE_SHOOT, SoundSource.BLOCKS, 0.6f, 1.4f)
-                        }
-                        cambios = true
-                    }
-                    // las bocas extra funden más a la vez (mientras el horno esté encendido)
-                    if (m.bocas > 0 && prendido) {
-                        m.progreso += m.bocas * ritmo
-                        while (m.progreso >= SEGUNDOS_POR_FUNDIDO) {
-                            m.progreso -= SEGUNDOS_POR_FUNDIDO
-                            val entrada = horno.getItem(0)
-                            val hecho = fundido(entrada) ?: break
-                            val salida = horno.getItem(2)
-                            if (salida.isEmpty) horno.setItem(2, hecho)
-                            else if (ItemStack.isSameItemSameComponents(salida, hecho) && salida.count < 64) salida.grow(1)
-                            else break
-                            entrada.shrink(1)
-                            horno.setChanged()
-                            // un balde de lava alcanza para 100: las bocas también gastan
-                            if (++m.fundidas >= 100) { m.fundidas = 0; tomarLava(nivel, m) }
-                        }
-                        cambios = true
-                    }
-                    // lo fundido pasa a los cofres pegados al horno (lo que funde no se vuelve a tomar: no es fundible)
-                    val listo = horno.getItem(2)
-                    if (!listo.isEmpty) {
-                        var resto = listo.copy()
-                        for ((_, cofre) in cofres(nivel, m)) {
-                            resto = HopperBlockEntity.addItem(null, cofre, resto, null)
-                            cofre.setChanged()
-                            if (resto.isEmpty) break
-                        }
-                        if (resto.count != listo.count) { horno.setItem(2, resto); horno.setChanged() }
-                    }
-                }
+                "horno" -> for ((pos, horno) in hornosDe(nivel, m)) trabajarHorno(nivel, m, pos, horno, servidor)
             }
         }
     }
@@ -772,7 +720,15 @@ object Maquinas {
             "veta" -> if (m.vetas > 0) { m.vetas--; true } else false
             "brazo" -> if (m.auto) { m.auto = false; true } else false
             "corazon" -> if (m.corazon) { m.corazon = false; true } else false
-            "boca" -> if (m.bocas > 0) { m.bocas--; true } else false
+            "boca" -> if (m.bocas > 0) {
+                val (p, _) = bocasPos(m).last()
+                (nivel.getBlockEntity(p) as? AbstractFurnaceBlockEntity)?.let { vaciar(j, it) }
+                m.bocas--
+                // vuelve la pieza que había (pilar o hueco)
+                val antes = piezas(m).lastOrNull { it.first == p }?.second ?: Blocks.AIR.defaultBlockState()
+                nivel.setBlock(p, antes, 3)
+                true
+            } else false
             "wayra" -> if (m.wayra) { m.wayra = false; true } else false
             "aro" -> when {
                 m.nivelTanque == 0 -> false
@@ -818,7 +774,7 @@ object Maquinas {
 
     private const val ADORNO = "maq_adorno"
     /** Cambia cuando cambia el aspecto de los adornos: los viejos se reemplazan solos. */
-    private const val ADORNO_VERSION = "maq_adorno_v3"
+    private const val ADORNO_VERSION = "maq_adorno_v4"
     private var segundos = 0
     private val revisadas = HashSet<String>()
 
@@ -857,24 +813,11 @@ object Maquinas {
                 if (m.auto) r += Adorno(modelo("brazo_cantera"), cx, y + BRAZO_ARRIBA, cz, yaw, 1.1f, etiqueta = "brazo")
                 // anexo: polvo de diamante y, si es estelar, amatista
                 if (m.modulo >= 1) {
-                    r += Adorno("{id:\"minecraft:deepslate_diamond_ore\",count:1}", cx + 2, y + 1.2, cz - 1.2, 20f, 0.4f, "none", "[0f,0f,0f,1f]")
+                    r += Adorno(modelo("polvo_diamante"), cx + 2, y + 1.12, cz - 1.2, 200f, 0.6f, giro = "[0.5f,0f,0f,0.866f]")
                     r += Adorno(modelo("tumbaga"), cx + 3.2, y + 1.12, cz, 75f, 0.6f, giro = "[0.5f,0f,0f,0.866f]")
                     if (m.auto) r += Adorno(modelo("brazo_cantera"), cx + 2, y + BRAZO_ARRIBA, cz, yaw, 1.1f, etiqueta = "brazo2")
                 }
-                if (m.modulo >= 2) r += Adorno("{id:\"minecraft:amethyst_block\",count:1}", cx + 2, y + 1.2, cz + 1.2, 50f, 0.4f, "none", "[0f,0f,0f,1f]")
-            }
-            "horno" -> {
-                // bocas extra: hornitos en las aberturas (no delante del horno) y sobre dos esquinas del techo
-                val frente = runCatching { Direction.valueOf(m.facing.uppercase()) }.getOrDefault(Direction.SOUTH)
-                val lugares = ArrayList<Vec3>()
-                for (dir in listOf(Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST)) {
-                    if (dir != frente) lugares += Vec3(cx + dir.stepX * 1.15, y + 1.25, cz + dir.stepZ * 1.15)
-                }
-                lugares += Vec3(cx - 1, y + 3.75, cz - 1); lugares += Vec3(cx + 1, y + 3.75, cz + 1)
-                for (i in 0 until m.bocas.coerceAtMost(lugares.size)) {
-                    val p = lugares[i]
-                    r += Adorno("{id:\"minecraft:blast_furnace\",count:1}", p.x, p.y, p.z, frente.toYRot(), 0.5f, "none", "[0f,0f,0f,1f]")
-                }
+                if (m.modulo >= 2) r += Adorno(modelo("polvo_estelar"), cx + 2, y + 1.12, cz + 1.2, 20f, 0.6f, giro = "[0.5f,0f,0f,0.866f]")
             }
             "fuente" -> if (m.corazon) r += Adorno(modelo("corazon_misti"), cx, y + 4.7, cz, 0f, 0.8f, extra = "billboard:\"vertical\",")
             "tanque" -> for (i in 0 until m.nivelTanque) {
@@ -930,7 +873,7 @@ object Maquinas {
         "diamante" -> modelo("polvo_diamante")
         "estelar" -> modelo("polvo_estelar")
         else -> "{id:\"minecraft:" + when (b) {
-            "carbon" -> "coal"; "hierro" -> "raw_iron"; "cobre" -> "raw_copper"; "oro" -> "raw_gold"; else -> "cobblestone"
+            "carbon" -> "coal"; "hierro" -> "raw_iron"; "cobre" -> "raw_copper"; "oro" -> "raw_gold"; "gema" -> "diamond"; else -> "cobblestone"
         } + "\",count:1}"
     }
 
@@ -948,13 +891,25 @@ object Maquinas {
             nivel.sendParticles(ParticleTypes.SMOKE, n.x + 0.5, n.y + 1.3, n.z + 0.5, 6, 0.2, 0.1, 0.2, 0.01)
             return
         }
-        val desde = Vec3(n.x + 0.5, n.y + 1.3, n.z + 0.5)
+        volar(nivel, Vec3(n.x + 0.5, n.y + 1.3, n.z + 0.5), Vec3(destino.x + 0.5, destino.y + 1.1, destino.z + 0.5), itemVuelo(sale))
+    }
+
+    /** Un ítem que se ve volar de un lugar a otro (solo si hay alguien cerca para verlo). */
+    private fun volar(nivel: ServerLevel, desde: Vec3, hasta: Vec3, item: String) {
+        if (nivel.players().none { it.distanceToSqr(desde) < 40.0 * 40.0 }) return
         val etiqueta = "maq_vuelo_${UUID.randomUUID().toString().take(8)}"
         comando(nivel, desde, "summon minecraft:item_display ${desde.x} ${desde.y} ${desde.z} {Tags:[\"$ADORNO\",\"$etiqueta\"]," +
-            "teleport_duration:8,billboard:\"center\",item:${itemVuelo(sale)}," +
+            "teleport_duration:8,billboard:\"center\",item:$item," +
             "transformation:{left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],translation:[0f,0f,0f],scale:[0.45f,0.45f,0.45f]}}")
         val d = nivel.getEntitiesOfClass(Display::class.java, AABB.ofSize(desde, 1.0, 1.0, 1.0)) { etiqueta in it.entityTags() }.firstOrNull() ?: return
-        vuelos += Animacion(nivel, d.uuid, Vec3(destino.x + 0.5, destino.y + 1.1, destino.z + 0.5), 0.0)
+        vuelos += Animacion(nivel, d.uuid, hasta, 0.0)
+    }
+
+    /** Cómo se ve un ítem en vuelo: los propios con su modelo, los demás tal cual. */
+    private fun nbtDe(s: ItemStack): String {
+        val d = datos(s)
+        for (id in listOf("tumbaga", "sol_tumbaga", "polvo_diamante", "polvo_estelar")) if (d?.contains(id) == true) return modelo(id)
+        return "{id:\"${BuiltInRegistries.ITEM.getKey(s.item)}\",count:1}"
     }
 
     /** Cada tick: el brazo vuelve arriba y los minerales llegan al cofre. */
@@ -1006,16 +961,101 @@ object Maquinas {
         return true
     }
 
-    private fun hornoUnido(nivel: ServerLevel, m: Maquina): Pair<Maquina, AbstractFurnaceBlockEntity>? {
-        val h = enlazada(m)?.takeIf { it.tipo == "horno" } ?: return null
-        if (!nivel.isLoaded(h.nucleo())) return null
-        val be = nivel.getBlockEntity(h.nucleo()) as? AbstractFurnaceBlockEntity ?: return null
-        return h to be
+    private fun hornoUnido(m: Maquina): Maquina? = enlazada(m)?.takeIf { it.tipo == "horno" }
+
+    /** Dónde va cada boca (un horno de verdad) y hacia dónde mira: 3 abajo adelante, 3 al medio adelante, 3 atrás. */
+    private fun bocasPos(m: Maquina): List<Pair<BlockPos, Direction>> {
+        if (m.tipo != "horno") return emptyList()
+        val f = runCatching { Direction.valueOf(m.facing.uppercase()) }.getOrDefault(Direction.SOUTH)
+        val lado = f.clockWise
+        val orden = listOf(Triple(1, 1, -1), Triple(1, 1, 1), Triple(1, 1, 0), Triple(2, 1, -1), Triple(2, 1, 1), Triple(2, 1, 0),
+            Triple(1, -1, -1), Triple(1, -1, 1), Triple(1, -1, 0))
+        return orden.take(m.bocas.coerceIn(0, MAX_BOCAS)).map { (dy, adelante, lat) ->
+            m.origen().offset(f.stepX * adelante + lado.stepX * lat, dy, f.stepZ * adelante + lado.stepZ * lat) to (if (adelante > 0) f else f.opposite)
+        }
+    }
+
+    /** Todos los hornos de una huayrachina: el del centro y sus bocas (solo los cargados). */
+    private fun hornosDe(nivel: ServerLevel, m: Maquina): List<Pair<BlockPos, AbstractFurnaceBlockEntity>> =
+        (listOf(m.nucleo()) + bocasPos(m).map { it.first }).mapNotNull { p ->
+            if (!nivel.isLoaded(p)) null else (nivel.getBlockEntity(p) as? AbstractFurnaceBlockEntity)?.let { p to it }
+        }
+
+    private fun vaciar(j: ServerPlayer, f: AbstractFurnaceBlockEntity) {
+        for (i in 0 until f.containerSize) {
+            val s = f.getItem(i)
+            if (!s.isEmpty && !s.`is`(Items.BUCKET)) Inventarios.dar(j, s.copy())
+            f.setItem(i, ItemStack.EMPTY)
+        }
+    }
+
+    private fun encender(nivel: ServerLevel, p: BlockPos) {
+        val st = nivel.getBlockState(p)
+        if (st.hasProperty(AbstractFurnaceBlock.LIT) && !st.getValue(AbstractFurnaceBlock.LIT)) nivel.setBlock(p, st.setValue(AbstractFurnaceBlock.LIT, true), 3)
+    }
+
+    /** Sol de Tumbaga en curso, por horno (se reinicia si se apaga el servidor). */
+    private val solEnCurso = HashMap<BlockPos, Int>()
+
+    /** Un segundo de trabajo de un horno de la huayrachina. */
+    private fun trabajarHorno(nivel: ServerLevel, m: Maquina, pos: BlockPos, horno: AbstractFurnaceBlockEntity, servidor: MinecraftServer) {
+        val fuego = (horno as Any) as AbstractFurnaceAccessor
+        // nada de baldes en el horno: un balde de lava se vuelve fuego al toque y el vacío desaparece
+        val comb = horno.getItem(1)
+        if (comb.`is`(Items.BUCKET)) horno.setItem(1, ItemStack.EMPTY)
+        else if (comb.`is`(Items.LAVA_BUCKET)) {
+            horno.setItem(1, ItemStack.EMPTY)
+            fuego.litTimeRemaining = fuego.litTimeRemaining + TICKS_LAVA
+            fuego.litTotalTime = maxOf(fuego.litTotalTime, fuego.litTimeRemaining)
+            encender(nivel, pos)
+            horno.setChanged()
+        }
+        alimentar(nivel, m, pos, horno)
+        val entra = horno.getItem(0)
+        if (!entra.isEmpty && fundible(m, entra) && fuego.litTimeRemaining <= 0 && tomarLava(nivel, m)) {
+            fuego.litTimeRemaining = TICKS_LAVA
+            fuego.litTotalTime = TICKS_LAVA
+            encender(nivel, pos)
+            horno.setChanged()
+            cambios = true
+        }
+        val prendido = fuego.litTimeRemaining > 0
+        // Soplo del Wayra: 3 veces más rápido
+        if (prendido && m.wayra && !horno.getItem(0).isEmpty && fuego.cookingTotalTime > 0) {
+            fuego.cookingTimer = minOf(fuego.cookingTimer + 40, fuego.cookingTotalTime - 1)
+        }
+        // Sol de Tumbaga: solo con las bocas necesarias
+        if (prendido && m.bocas >= BOCAS_SOL && esTumbaga(horno.getItem(0))) {
+            val t = (solEnCurso[pos] ?: 0) + if (m.wayra) 3 else 1
+            val salida = horno.getItem(2)
+            if (t >= SEGUNDOS_SOL && (salida.isEmpty || (esSolTumbaga(salida) && salida.count < 64))) {
+                solEnCurso.remove(pos)
+                horno.getItem(0).shrink(1)
+                if (salida.isEmpty) GuiOfertas.crearTexto(servidor, CATALOGO_SOL_TUMBAGA)?.let { horno.setItem(2, it) } else salida.grow(1)
+                horno.setChanged()
+                nivel.playSound(null, pos, SoundEvents.BLAZE_SHOOT, SoundSource.BLOCKS, 0.6f, 1.4f)
+            } else solEnCurso[pos] = t
+        }
+        // lo fundido pasa a los cofres pegados (no se vuelve a tomar: ya no es fundible)
+        val listo = horno.getItem(2)
+        if (!listo.isEmpty) {
+            var resto = listo.copy()
+            for ((cp, cofre) in cofres(nivel, m)) {
+                val antes = resto.count
+                resto = HopperBlockEntity.addItem(null, cofre, resto, null)
+                cofre.setChanged()
+                if (resto.count < antes) volar(nivel, Vec3(pos.x + 0.5, pos.y + 0.9, pos.z + 0.5), Vec3(cp.x + 0.5, cp.y + 1.1, cp.z + 0.5), nbtDe(listo))
+                if (resto.isEmpty) break
+            }
+            if (resto.count != listo.count) { horno.setItem(2, resto); horno.setChanged() }
+        }
     }
 
     // ---------- quipu y filtro ----------
 
-    private const val MAX_BOCAS = 5
+    private const val MAX_BOCAS = 9
+    /** Bocas que necesita la Huayrachina para fundir Tumbaga en Sol de Tumbaga (6 hornos en total). */
+    private const val BOCAS_SOL = 5
     /** Un balde de lava: 20000 ticks de fuego, como en el horno normal (100 cosas). */
     private const val TICKS_LAVA = 20_000
     private const val SEGUNDOS_SOL = 30
@@ -1076,7 +1116,7 @@ object Maquinas {
     private val FILTRO = listOf(
         Triple("piedra", Items.COBBLESTONE, "Piedra"), Triple("cobre", Items.RAW_COPPER, "Cobre"),
         Triple("hierro", Items.RAW_IRON, "Hierro"), Triple("oro", Items.RAW_GOLD, "Oro"),
-        Triple("tumbaga", Items.ECHO_SHARD, "Tumbaga (si el horno tiene 5 bocas)"),
+        Triple("tumbaga", Items.ECHO_SHARD, "Tumbaga (si el horno tiene $BOCAS_SOL bocas)"),
     )
 
     private fun botonQuipu(j: ServerPlayer, nivel: ServerLevel, m: Maquina): GuiElementBuilder {
@@ -1127,12 +1167,17 @@ object Maquinas {
     /** Manda lo que picó la cantera: a su huayrachina (si el filtro lo pide) o a sus cofres. Devuelve a dónde fue. */
     private fun entregar(nivel: ServerLevel, m: Maquina, sale: String, servidor: MinecraftServer): BlockPos? {
         var resto = itemDe(sale, servidor)
-        if (sale in m.filtro.split(',')) hornoUnido(nivel, m)?.let { (h, horno) ->
-            if (sale != "tumbaga" || h.bocas >= MAX_BOCAS) {
-                val entrada = horno.getItem(0)
-                if (entrada.isEmpty) { horno.setItem(0, resto); resto = ItemStack.EMPTY }
-                else if (ItemStack.isSameItemSameComponents(entrada, resto) && entrada.count < 64) { entrada.grow(1); resto = ItemStack.EMPTY }
-                if (resto.isEmpty) { horno.setChanged(); return h.nucleo() }
+        val h = hornoUnido(m)
+        if (h != null && sale in m.filtro.split(',') && (sale != "tumbaga" || h.bocas >= BOCAS_SOL)) {
+            // primero un horno que ya funde lo mismo; si no, uno vacío
+            val hornos = hornosDe(nivel, h)
+            val elegido = hornos.firstOrNull { (_, f) -> ItemStack.isSameItemSameComponents(f.getItem(0), resto) && f.getItem(0).count < 64 }
+                ?: hornos.firstOrNull { (_, f) -> f.getItem(0).isEmpty }
+            if (elegido != null) {
+                val (pos, f) = elegido
+                if (f.getItem(0).isEmpty) f.setItem(0, resto) else f.getItem(0).grow(1)
+                f.setChanged()
+                return pos
             }
         }
         // llena los cofres en orden; si todos están llenos, lo que no entra se descarta (nada cae al piso)
@@ -1147,18 +1192,19 @@ object Maquinas {
         return destino
     }
 
-    private fun fundible(m: Maquina, s: ItemStack) = fundido(s) != null || (m.bocas >= MAX_BOCAS && esTumbaga(s))
+    private fun fundible(m: Maquina, s: ItemStack) = fundido(s) != null || (m.bocas >= BOCAS_SOL && esTumbaga(s))
 
     /** La huayrachina toma de sus cofres pegados lo que sabe fundir (piedra, minerales crudos, arena…). */
-    private fun alimentar(nivel: ServerLevel, m: Maquina, horno: AbstractFurnaceBlockEntity) {
+    private fun alimentar(nivel: ServerLevel, m: Maquina, pos: BlockPos, horno: AbstractFurnaceBlockEntity) {
         val entrada = horno.getItem(0)
         if (!entrada.isEmpty && (entrada.count >= 64 || !fundible(m, entrada))) return
-        for ((_, c) in cofres(nivel, m)) for (i in 0 until c.containerSize) {
+        for ((cp, c) in cofres(nivel, m)) for (i in 0 until c.containerSize) {
             val s = c.getItem(i)
             if (s.isEmpty || !fundible(m, s)) continue
             if (!entrada.isEmpty && !ItemStack.isSameItemSameComponents(entrada, s)) continue
             val n = minOf(s.count, 64 - entrada.count)
             if (n <= 0) return
+            volar(nivel, Vec3(cp.x + 0.5, cp.y + 1.0, cp.z + 0.5), Vec3(pos.x + 0.5, pos.y + 0.9, pos.z + 0.5), nbtDe(s))
             if (entrada.isEmpty) horno.setItem(0, s.copyWithCount(n)) else entrada.grow(n)
             s.shrink(n)
             c.setChanged()
@@ -1171,7 +1217,7 @@ object Maquinas {
         val (titulo, lore, precio) = when (m.modulo) {
             0 -> Triple("Ampliar: anexo de la cantera", listOf(
                 "Un segundo bloque que sale solo, pegado hacia el este",
-                "Ya no da cobre: más tumbaga, oro, hierro y polvo de diamante",
+                "Ya no da cobre ni hierro: tumbaga, oro, polvo de diamante y algún diamante",
                 "Necesita libre 2 de ancho x 3 x 4 de alto al este",
                 "Queda para siempre (la maqueta lo guarda)",
             ), PRECIO_ANEXO)
@@ -1222,6 +1268,11 @@ object Maquinas {
         if (nivel.players().none { it.distanceToSqr(cx, m.y + 2.0, cz) < 48.0 * 48.0 }) return
         when (m.tipo) {
             "tanque" -> if (m.lava > 0) nivel.sendParticles(ParticleTypes.WHITE_SMOKE, cx, m.y + 5.15, cz, 3, 0.35, 0.05, 0.35, 0.01)
+            "horno" -> if (m.wayra) {
+                // el Soplo del Wayra: viento azul que aviva el fuego
+                nivel.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, cx, m.y + 1.6, cz, 5, 1.0, 0.6, 1.0, 0.02)
+                nivel.sendParticles(ParticleTypes.CLOUD, cx, m.y + 3.2, cz, 2, 0.5, 0.1, 0.5, 0.02)
+            }
             "fuente" -> {
                 nivel.sendParticles(ParticleTypes.FLAME, cx, m.y + 1.05, cz, 4, 0.9, 0.02, 0.9, 0.003)
                 if (Random.nextDouble() < 0.35) nivel.sendParticles(ParticleTypes.LAVA, cx, m.y + 1.2, cz, 1, 0.6, 0.0, 0.6, 0.0)
