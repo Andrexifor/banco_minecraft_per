@@ -8,6 +8,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents
 import net.fabricmc.fabric.api.event.player.UseBlockCallback
+import net.fabricmc.fabric.api.event.player.UseItemCallback
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.ChatFormatting
 import net.minecraft.core.BlockPos
@@ -270,7 +271,8 @@ object Maquinas {
             // 1) colocar una maqueta
             val maqueta = d?.getStringOr("maqueta", "")?.ifBlank { null }
             if (maqueta != null) {
-                if (mano == InteractionHand.MAIN_HAND) colocar(jugador, nivel, s, maqueta, d, golpe.blockPos.relative(golpe.direction))
+                if (mano == InteractionHand.MAIN_HAND) colocar(jugador, nivel, s, maqueta, d, baseDe(nivel, golpe.blockPos, golpe.direction))
+                usoMaquina[jugador.uuid] = nivel.server.tickCount
                 return@register InteractionResult.SUCCESS
             }
             // nadie pone bloques dentro de una máquina (al desarmarla se perderían); encima o al lado, sí
@@ -291,8 +293,10 @@ object Maquinas {
                 return@register InteractionResult.FAIL
             }
             if (mano != InteractionHand.MAIN_HAND) return@register InteractionResult.PASS
-            // 2) desarmar
-            if (jugador.isShiftKeyDown && s.isEmpty && golpe.blockPos == m.nucleo()) {
+            // lo que se haga aquí no debe seguir como uso del ítem (un balde vaciaría lava al lado, por ejemplo)
+            if (s.item !is BlockItem) usoMaquina[jugador.uuid] = nivel.server.tickCount
+            // 2) desarmar: Shift + clic derecho con la mano vacía a cualquier parte (el centro del tanque no se alcanza)
+            if (jugador.isShiftKeyDown && s.isEmpty) {
                 desarmar(jugador, nivel, m); return@register InteractionResult.SUCCESS
             }
             // tambo: menú de viajes
@@ -312,6 +316,12 @@ object Maquinas {
             menu(jugador, nivel, m)
             InteractionResult.SUCCESS
         }
+        // el cliente, tras el clic a una máquina, también intenta usar el ítem (p. ej. vaciar el balde): se frena
+        UseItemCallback.EVENT.register { jugador, nivel, _ ->
+            val servidor = (nivel as? ServerLevel)?.server ?: return@register InteractionResult.PASS
+            val t = usoMaquina[jugador.uuid] ?: return@register InteractionResult.PASS
+            if (servidor.tickCount - t <= 2) InteractionResult.FAIL else InteractionResult.PASS
+        }
         PlayerBlockBreakEvents.BEFORE.register { nivel, jugador, pos, _, _ ->
             val m = en(nivel, pos) ?: return@register true
             if (jugador !is ServerPlayer || nivel !is ServerLevel) return@register false
@@ -324,7 +334,7 @@ object Maquinas {
                 }
                 return@register true
             }
-            aviso(jugador, if (m.dueno == jugador.uuid.toString()) "Para quitarla: Shift + clic derecho al centro con la mano vacía." else "Esta máquina es de otro jugador.", ChatFormatting.RED)
+            aviso(jugador, if (m.dueno == jugador.uuid.toString()) "Para quitarla: clic derecho y Desarmar (o Shift + clic derecho con la mano vacía)." else "Esta máquina es de otro jugador.", ChatFormatting.RED)
             false
         }
         PlayerBlockBreakEvents.AFTER.register { nivel, _, pos, _, _ ->
@@ -354,6 +364,7 @@ object Maquinas {
         if (zona.any { Proteccion.zonaEn(nivel, it) != null }) {
             aviso(j, "Aquí no se puede construir.", ChatFormatting.RED); return
         }
+        zona.forEach { if (!nivel.getBlockState(it).isAir) nivel.setBlock(it, Blocks.AIR.defaultBlockState(), 3) }
         piezas.forEach { (p, st) -> nivel.setBlock(p, st, 3) }
         if (m.tipo == "tanque") pintarTanque(nivel, m)
         if (m.tipo == "fuente") m.falta = tiempoFuente(m)
@@ -362,7 +373,7 @@ object Maquinas {
         decorar(nivel, m)
         s.shrink(1)
         nivel.playSound(null, base, SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 1f, 0.8f)
-        aviso(j, "¡Listo: ${nombre(m.tipo)}! Shift + clic derecho al centro con la mano vacía para desarmarlo.")
+        aviso(j, "¡Listo: ${nombre(m.tipo)}! Clic derecho: su menú (mejoras y desarmar).")
     }
 
     private fun desarmar(j: ServerPlayer, nivel: ServerLevel, m: Maquina) {
@@ -487,7 +498,14 @@ object Maquinas {
             "fuente" -> r += "Próxima lava en ${m.falta} s" + if (tanqueCerca(m) { true } != null) " (va al tanque)" else " (al caldero)"
             "horno" -> {
                 val t = tanqueCerca(m) { true }
-                r += if (t == null) "Sin tanque cerca (a 8 bloques o menos)" else "Tanque cerca: ${t.lava} baldes de lava"
+                val f = fuenteCerca(m)
+                r += when {
+                    t != null -> "Lava: tanque cerca con ${t.lava} baldes"
+                    f != null -> "Lava: Fuente del Misti cerca"
+                    else -> "Sin lava: pon un tanque o una Fuente del Misti a 8 bloques o menos"
+                }
+                r += "Funde lo que pongas dentro; lo listo va a los cofres pegados"
+                r += "Una cantera automática cerca le manda el hierro y el cobre"
             }
         }
         return r
@@ -514,7 +532,13 @@ object Maquinas {
                         val sale = sorteo(m.vetas)
                         var resto = itemDe(sale, servidor)
                         var destino: BlockPos? = null
-                        for ((pos, cofre) in cofres(nivel, m)) {
+                        if (sale == "hierro" || sale == "cobre") hornoCerca(nivel, m)?.let { (h, horno) ->
+                            val entrada = horno.getItem(0)
+                            if (entrada.isEmpty) { horno.setItem(0, resto); resto = ItemStack.EMPTY }
+                            else if (ItemStack.isSameItemSameComponents(entrada, resto) && entrada.count < 64) { entrada.grow(1); resto = ItemStack.EMPTY }
+                            if (resto.isEmpty) { horno.setChanged(); destino = h.nucleo() }
+                        }
+                        if (!resto.isEmpty) for ((pos, cofre) in cofres(nivel, m)) {
                             val antes = resto.count
                             resto = HopperBlockEntity.addItem(null, cofre, resto, null)
                             cofre.setChanged()
@@ -541,11 +565,20 @@ object Maquinas {
                     val horno = nivel.getBlockEntity(m.nucleo()) as? AbstractFurnaceBlockEntity ?: continue
                     val combustible = horno.getItem(1)
                     if (combustible.`is`(Items.BUCKET)) horno.setItem(1, ItemStack.EMPTY)
-                    if (!horno.getItem(0).isEmpty && horno.getItem(1).isEmpty) {
-                        val tanque = tanqueCerca(m) { it.lava > 0 } ?: continue
-                        tanque.lava--; pintarTanque(nivel, tanque)
+                    if (!horno.getItem(0).isEmpty && horno.getItem(1).isEmpty && tomarLava(nivel, m)) {
                         horno.setItem(1, ItemStack(Items.LAVA_BUCKET))
                         cambios = true
+                    }
+                    // lo fundido pasa a los cofres pegados al horno
+                    val listo = horno.getItem(2)
+                    if (!listo.isEmpty) {
+                        var resto = listo.copy()
+                        for ((_, cofre) in cofres(nivel, m)) {
+                            resto = HopperBlockEntity.addItem(null, cofre, resto, null)
+                            cofre.setChanged()
+                            if (resto.isEmpty) break
+                        }
+                        if (resto.count != listo.count) { horno.setItem(2, resto); horno.setChanged() }
                     }
                 }
             }
@@ -777,5 +810,44 @@ object Maquinas {
             if (a.t == 2) a.hasta?.let { d.snapTo(it.x, it.y, it.z, 0f, 0f) }
             if (a.t >= 12) { vuelos.remove(a); d.discard() }
         }
+    }
+
+    // ---------- detalles ----------
+
+    /** Quién usó una máquina y en qué tick: ese mismo clic no debe seguir como uso del ítem. */
+    private val usoMaquina = HashMap<UUID, Int>()
+
+    /**
+     * Dónde se arma una maqueta: sobre el bloque clicado; si es pasto, flores o nieve (se reemplazan),
+     * en su lugar y no encima (y si es pasto alto, desde su mitad de abajo).
+     */
+    private fun baseDe(nivel: ServerLevel, clic: BlockPos, cara: Direction): BlockPos {
+        val st = nivel.getBlockState(clic)
+        var b = if (!st.isAir && st.canBeReplaced() && st.fluidState.isEmpty) clic else clic.relative(cara)
+        repeat(2) {
+            val abajo = nivel.getBlockState(b.below())
+            if (!abajo.isAir && abajo.canBeReplaced() && abajo.fluidState.isEmpty) b = b.below()
+        }
+        return b
+    }
+
+    private fun cerca(a: Maquina, b: Maquina) = a.dueno == b.dueno && a.dim == b.dim &&
+        kotlin.math.abs(a.x - b.x) <= CERCA && kotlin.math.abs(a.y - b.y) <= CERCA && kotlin.math.abs(a.z - b.z) <= CERCA
+
+    private fun fuenteCerca(m: Maquina) = lista.firstOrNull { it.tipo == "fuente" && it !== m && cerca(it, m) }
+
+    /** Un balde de lava para el horno: de un tanque cercano o, si no, del caldero lleno de una fuente cercana. */
+    private fun tomarLava(nivel: ServerLevel, m: Maquina): Boolean {
+        tanqueCerca(m) { it.lava > 0 }?.let { t -> t.lava--; pintarTanque(nivel, t); return true }
+        val f = lista.firstOrNull { it.tipo == "fuente" && cerca(it, m) && nivel.getBlockState(it.nucleo()).`is`(Blocks.LAVA_CAULDRON) } ?: return false
+        nivel.setBlock(f.nucleo(), Blocks.CAULDRON.defaultBlockState(), 3)
+        f.falta = tiempoFuente(f)
+        return true
+    }
+
+    private fun hornoCerca(nivel: ServerLevel, m: Maquina): Pair<Maquina, AbstractFurnaceBlockEntity>? {
+        val h = lista.firstOrNull { it.tipo == "horno" && cerca(it, m) } ?: return null
+        val be = nivel.getBlockEntity(h.nucleo()) as? AbstractFurnaceBlockEntity ?: return null
+        return h to be
     }
 }
