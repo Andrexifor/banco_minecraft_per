@@ -179,6 +179,121 @@ def pocion(liquido, liquido_s, sello):
     return contornear(img, hexc("3a1e10"))
 
 
+def maqueta(dibujo):
+    """Plano enrollado (quipu-pergamino) con el dibujo de la máquina encima."""
+    img = lienzo(); px = img.load()
+    for y in range(6, 28):
+        for x in range(4, 28):
+            px[x, y] = hexc("e8d9b0") if (x + y) % 7 else hexc("d6c494")
+    for y in range(5, 29):
+        for x in (3, 4, 27, 28):
+            px[x, y] = hexc("8a5a32")
+    dibujo(px)
+    return contornear(img, hexc("4a2c14"))
+
+
+def d_cantera(px):
+    for y in range(12, 24):
+        for x in range(9, 23):
+            if x in (9, 10, 21, 22) or y in (12, 13, 22, 23):
+                px[x, y] = hexc("8a8a8a")
+    for y in range(15, 21):
+        for x in range(13, 19):
+            px[x, y] = hexc("6b6b6b") if (x + y) % 3 else hexc("c8961e")
+
+
+def d_fuente(px):
+    for y in range(14, 25):
+        a = (y - 14) // 2
+        for x in range(15 - a - 2, 17 + a + 2):
+            px[x, y] = hexc("2b2b33")
+    for y in range(9, 16):
+        px[15, y] = hexc("ff7a1a"); px[16, y] = hexc("ffd23f")
+
+
+def d_tanque(px):
+    for y in range(9, 26):
+        for x in range(11, 21):
+            borde = x in (11, 20) or y in (9, 25)
+            px[x, y] = hexc("c9d2dc") if borde else (hexc("ff7a1a") if y > 17 else hexc("bfe3f0"))
+
+
+def d_horno(px):
+    for y in range(11, 25):
+        for x in range(10, 22):
+            px[x, y] = hexc("7a7a7a") if (x + y) % 4 else hexc("5a5a5a")
+    for y in range(18, 22):
+        for x in range(14, 18):
+            px[x, y] = hexc("ff9d2e")
+    for y in range(6, 11):
+        px[16, y] = hexc("aaaaaa")
+
+
+def mejora_icono(forma, c1, c2):
+    img = lienzo(); px = img.load()
+    forma(px, c1, c2)
+    return contornear(img, hexc("2b1d14"))
+
+
+def f_cincel(px, c1, c2):
+    for t in range(18):
+        px[8 + t, 24 - t] = c1; px[9 + t, 24 - t] = c2
+    for y in range(20, 27):
+        for x in range(5, 11):
+            px[x, y] = hexc("8a5a32")
+
+
+def f_veta(px, c1, c2):
+    for y in range(6, 27):
+        for x in range(6, 26):
+            px[x, y] = hexc("7a7a7a") if (x * y) % 5 else hexc("5a5a5a")
+    for (x, y, c) in ((10, 10, c1), (11, 10, c1), (18, 14, c2), (19, 15, c2), (13, 20, hexc("e07a3c")), (14, 21, hexc("e07a3c")), (21, 22, c1)):
+        px[x, y] = c
+
+
+def f_brazo(px, c1, c2):
+    for t in range(16):
+        for w in range(3):
+            px[6 + t, 22 - t // 2 + w] = c1
+    for y in range(6, 16):
+        for x in range(20, 26):
+            px[x, y] = c2
+
+
+def f_corazon(px, c1, c2):
+    for y in range(T):
+        for x in range(T):
+            dx, dy = (x - 15.5) / 10, (y - 15) / 10
+            if (dx * dx + dy * dy - 0.3) ** 3 - dx * dx * dy ** 3 * -1 <= 0 and dy > -0.9:
+                px[x, y] = c1 if (x + y) % 4 else c2
+
+
+def f_aro(px, c1, c2):
+    for y in range(T):
+        for x in range(T):
+            d = math.hypot(x - 15.5, y - 15.5)
+            if 8 <= d <= 12:
+                px[x, y] = c1 if (x + y) % 5 else c2
+
+
+def tumbaga():
+    img = lienzo(); px = img.load()
+    pts = [(16, 5), (25, 12), (23, 24), (12, 27), (6, 17), (9, 8)]
+    for y in range(T):
+        for x in range(T):
+            dentro = True
+            for i in range(len(pts)):
+                (x1, y1), (x2, y2) = pts[i], pts[(i + 1) % len(pts)]
+                if (x2 - x1) * (y - y1) - (y2 - y1) * (x - x1) < 0:
+                    dentro = False
+            if dentro:
+                luz = (x - y) / 30
+                px[x, y] = hexc("ffd27a") if luz > 0.2 else hexc("e8a040") if luz > -0.2 else hexc("b0602a")
+    for (x, y) in ((14, 10), (15, 10), (19, 15), (11, 18)):
+        px[x, y] = hexc("fff6c8")
+    return contornear(img, hexc("5a2a10"))
+
+
 # ---------------------------------------------------------------- cóndor 3D
 def piel_condor():
     """Atlas 32x32: plumaje negro, collar blanco, cabeza roja, pico, alas con banda blanca."""
@@ -264,6 +379,16 @@ def main():
     guardar_item("pocion_regreso", pocion(hexc("3f8fe0"), hexc("2a5fa8"), hexc("ffd23f")))
     guardar_item("pocion_muerte", pocion(hexc("5a1e6b"), hexc("2a0f3d"), hexc("d7263d")))
     guardar_item("pocion_buscador", pocion(hexc("2fd07a"), hexc("1d8a50"), hexc("8ef3ff")))
+    guardar_item("maqueta_cantera", maqueta(d_cantera))
+    guardar_item("maqueta_fuente", maqueta(d_fuente))
+    guardar_item("maqueta_tanque", maqueta(d_tanque))
+    guardar_item("maqueta_horno", maqueta(d_horno))
+    guardar_item("cincel_apu", mejora_icono(f_cincel, hexc("c9d2dc"), hexc("8a96a8")))
+    guardar_item("veta_montana", mejora_icono(f_veta, hexc("f4c430"), hexc("f2e6da")))
+    guardar_item("brazo_cantera", mejora_icono(f_brazo, hexc("8a8a8a"), hexc("c8961e")))
+    guardar_item("corazon_misti", mejora_icono(f_corazon, hexc("ff5a1a"), hexc("ffd23f")))
+    guardar_item("aro_acero", mejora_icono(f_aro, hexc("c9d2dc"), hexc("6b7785")))
+    guardar_item("tumbaga", tumbaga())
     piel_condor().save(os.path.join(NS, "textures", "item", "condor_piel.png"))
     guardar_item("condor", modelo=modelo_condor())
     print("v0.7.5 lista")

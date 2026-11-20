@@ -152,5 +152,5 @@ object Proteccion {
 
     /** Para el mixin de explosiones: true si la posición está en alguna zona. */
     @JvmStatic
-    fun protegido(level: Level, pos: BlockPos): Boolean = zonaEn(level, pos) != null
+    fun protegido(level: Level, pos: BlockPos): Boolean = zonaEn(level, pos) != null || Maquinas.esBloque(level, pos)
 }

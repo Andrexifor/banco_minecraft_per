@@ -300,6 +300,47 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
             ),
         )
 
+        // ---------- máquinas del Pirqakamayuq ----------
+
+        private fun maqueta(tipo: String, nombre: String, vararg l: String) =
+            especial("paper", "maqueta_$tipo", "maqueta", "\"$tipo\"", nombre, "gold", 1,
+                *l, "Clic derecho sobre el suelo: se arma (3x3)", "Shift + clic derecho al centro, mano vacía: se desarma")
+
+        private fun mejora(id: String, modelo: String, nombre: String, vararg l: String) =
+            especial("paper", modelo, "mejora_maquina", "\"$id\"", nombre, "aqua", 16, *l, "Clic derecho a la máquina para usarla")
+
+        fun pirqaPorDefecto() = CatalogoOfertas(
+            mutableListOf(
+                Oferta("cantera", "Cantera inca", maqueta("cantera", "Maqueta: Cantera inca",
+                    "La piedra del centro vuelve a salir al minarla", "Cada 10 s (con cinceles, hasta 1 s)"),
+                    precio = 1_500_000, descripcion = "Piedra infinita"),
+                Oferta("cincel", "Cincel del Apu", mejora("cincel", "cincel_apu", "Cincel del Apu",
+                    "Cantera más rápida: 10 -> 7 -> 5 -> 3 -> 1 s"),
+                    precio = 750_000, descripcion = "Acelera la cantera un nivel"),
+                Oferta("veta", "Veta de la montaña", mejora("veta", "veta_montana", "Veta de la montaña",
+                    "Vetas I: carbón · II: hierro, cobre y tumbaga", "III: sin carbón y más tumbaga"),
+                    precio = 2_500_000, descripcion = "Sube las vetas de la cantera un nivel"),
+                Oferta("brazo", "Brazo de la cantera", mejora("brazo", "brazo_cantera", "Brazo de la cantera",
+                    "La cantera pica sola cada 5 s", "y lo deja en un cofre pegado a ella"),
+                    precio = 30_000_000, descripcion = "Cantera automática"),
+                Oferta("fuente", "Fuente del Misti", maqueta("fuente", "Maqueta: Fuente del Misti",
+                    "Un balde de lava cada 5 minutos", "Con un tanque cerca, la lava va al tanque"),
+                    precio = 6_000_000, descripcion = "Lava cada 5 minutos"),
+                Oferta("corazon", "Corazón del Misti", mejora("corazon", "corazon_misti", "Corazón del Misti",
+                    "La fuente da lava en la mitad del tiempo", "Solo una por fuente"),
+                    precio = 8_000_000, descripcion = "Fuente del Misti al doble de rápido"),
+                Oferta("tanque", "Tanque de vidrio y acero", maqueta("tanque", "Maqueta: Tanque de vidrio y acero",
+                    "Guarda 16 baldes de lava", "Clic con balde: saca o guarda lava"),
+                    precio = 2_500_000, descripcion = "Guarda lava (16 baldes)"),
+                Oferta("aro", "Aro de acero", mejora("aro", "aro_acero", "Aro de acero",
+                    "Agranda un tanque: 16 -> 32 -> 48 -> 80", "-> 160 -> 400 -> 800 baldes"),
+                    precio = 3_000_000, descripcion = "Agranda el tanque un tamaño"),
+                Oferta("horno", "Huayrachina", maqueta("horno", "Maqueta: Huayrachina (horno inca)",
+                    "Funde sin carbón: toma lava de un tanque", "tuyo a 8 bloques o menos"),
+                    precio = 4_000_000, descripcion = "Horno que funde con la lava del tanque"),
+            ),
+        )
+
         // ---------- pociones del Kallawaya ----------
 
         private fun pocion(id: String, nombre: String, color: String, vararg lineas: String) =

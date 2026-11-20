@@ -14,6 +14,8 @@ import io.github.andrexifor.banco.juego.Mochilas
 import io.github.andrexifor.banco.juego.FlorTraslado
 import io.github.andrexifor.banco.juego.Condor
 import io.github.andrexifor.banco.juego.Pociones
+import io.github.andrexifor.banco.juego.Maquinas
+import io.github.andrexifor.banco.juego.Pirqa
 import io.github.andrexifor.banco.juego.SeresCosmicos
 import io.github.andrexifor.banco.nucleo.Banco
 import io.github.andrexifor.banco.nucleo.Catalogo
@@ -62,6 +64,8 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         private set
     lateinit var pociones: CatalogoOfertas
         private set
+    lateinit var pirqa: CatalogoOfertas
+        private set
     lateinit var mercadoNegro: ConfigMercadoNegro
         private set
 
@@ -82,6 +86,7 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         animales = almacen.cargarAnimales()
         sembrador = almacen.cargarSembrador()
         pociones = almacen.cargarPociones()
+        pirqa = almacen.cargarPirqa()
         mercadoNegro = almacen.cargarMercadoNegro()
         Npcs.cargar()
         Logros.cargar()
@@ -98,6 +103,8 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         FlorTraslado.registrarEventos()
         Condor.registrarEventos()
         Pociones.registrarEventos()
+        Maquinas.registrarEventos()
+        Pirqa.registrarEventos()
         LOGGER.info(
             "Banco Minecraft PER listo: {} cuentas, {} productos en la tienda, {} legendarios, {} zonas protegidas",
             banco.todas().size,
@@ -149,6 +156,7 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         animales = almacen.cargarAnimales()
         sembrador = almacen.cargarSembrador()
         pociones = almacen.cargarPociones()
+        pirqa = almacen.cargarPirqa()
         mercadoNegro = almacen.cargarMercadoNegro()
     }
 }

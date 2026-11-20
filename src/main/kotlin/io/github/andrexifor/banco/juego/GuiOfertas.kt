@@ -28,6 +28,7 @@ enum class Tienda(val titulo: String, val color: ChatFormatting, val concepto: S
     CONTRABANDO("Mercado negro", ChatFormatting.DARK_RED, "CONTRABANDO"),
     SEMBRADOR("Artículos del Sembrador", ChatFormatting.DARK_GREEN, "ARTICULO"),
     POCIONES("Pociones del Kallawaya", ChatFormatting.DARK_AQUA, "POCION"),
+    PIRQA("Pirqakamayuq, maestro constructor", ChatFormatting.DARK_RED, "MAQUINA"),
     ;
 
     val catalogo: CatalogoOfertas
@@ -37,6 +38,7 @@ enum class Tienda(val titulo: String, val color: ChatFormatting, val concepto: S
             CONTRABANDO -> BancoMinecraftPer.contrabando
             SEMBRADOR -> BancoMinecraftPer.sembrador
             POCIONES -> BancoMinecraftPer.pociones
+            PIRQA -> BancoMinecraftPer.pirqa
         }
 }
 
@@ -47,6 +49,15 @@ object GuiOfertas {
         ItemArgument.item(contexto).parse(StringReader(o.item)).createItemStack(o.cantidad)
     } catch (e: Exception) {
         BancoMinecraftPer.LOGGER.warn("Oferta {}: ítem mal escrito '{}': {}", o.id, o.item, e.message)
+        null
+    }
+
+    /** Ítem desde un texto en formato /give (null si está mal escrito). */
+    fun crearTexto(servidor: MinecraftServer, texto: String): ItemStack? = if (texto.isBlank()) null else try {
+        val contexto = CommandBuildContext.simple(servidor.registryAccess(), servidor.worldData.enabledFeatures())
+        ItemArgument.item(contexto).parse(StringReader(texto)).createItemStack(1)
+    } catch (e: Exception) {
+        BancoMinecraftPer.LOGGER.warn("Ítem mal escrito '{}': {}", texto, e.message)
         null
     }
 
@@ -103,8 +114,12 @@ object GuiOfertas {
         if (o.anunciar) Logros.anunciar(servidor, "${j.name.string} compró ${o.nombre} en el ${tienda.titulo.lowercase()}")
         when (tienda) {
             Tienda.BROMAS -> Logros.sumar(j, Contador.GASTO_BROMAS, o.precio + impuesto, Metas.GASTO_BROMAS, Logro.PLATA_COMO_CANCHA)
-            Tienda.CONTRABANDO -> Logros.sumar(j, Contador.COMPRAS_NEGRO, 1, Metas.COMPRAS_NEGRO, Logro.VIP_MERCADO_NEGRO)
-            Tienda.ANIMALES, Tienda.SEMBRADOR, Tienda.POCIONES -> Unit
+            Tienda.CONTRABANDO -> {
+                Logros.sumar(j, Contador.COMPRAS_NEGRO, 1, Metas.COMPRAS_NEGRO, Logro.VIP_MERCADO_NEGRO)
+                // el artículo más caro del mercado negro abre el trato con el Pirqakamayuq
+                if (o.id == tienda.catalogo.ofertas.orEmpty().maxByOrNull { it.precio }?.id) Pirqa.desbloquear(j)
+            }
+            Tienda.ANIMALES, Tienda.SEMBRADOR, Tienda.POCIONES, Tienda.PIRQA -> Unit
         }
         return Respuesta(true, "¡${o.nombre} es tuyo! ${cobro.mensaje}")
     }

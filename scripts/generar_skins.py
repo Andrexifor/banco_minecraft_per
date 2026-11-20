@@ -328,7 +328,28 @@ def kallawaya():
     return s
 
 
-SKINS = {"kallawaya": kallawaya, "criador": criador, "banquero": banquero, "tendero": tendero, "herrero": herrero, "mercader": mercader,
+# ------------------------------------------------------------------ Pirqakamayuq (maestro constructor)
+def pirqakamayuq():
+    s = Skin()
+    cabeza_base(s)
+    PIEDRA = hexc("6b6b70"); PIEDRA_S = hexc("4e4e54"); POLVO = hexc("9a948a")
+    # llawt'u (cinta) roja con chapa de oro
+    s.todo("sombrero", lambda x, y: (ROJO if y == 2 else (ORO if (y == 2 and x == 3) else None)), None)
+    s.cara("sombrero", "frente", lambda x, y, W, H: (ORO if (y == 2 and x in (3, 4)) else (ROJO if y == 2 else None)))
+    # unku gris de cantero con mandil de cuero y polvo de piedra
+    def unku(x, y):
+        if 2 <= x <= 5 and y >= 5:
+            return CUERO if (x + y) % 5 else MARRON
+        if y == 4:
+            return ORO_S
+        return PIEDRA if (x * 3 + y) % 7 else POLVO
+    s.todo("cuerpo", unku, lambda x, y: PIEDRA)
+    brazos(s, PIEDRA_S, 4, CUERO)
+    piernas(s, PIEDRA_S, MARRON_S, banda=CUERO)
+    return s
+
+
+SKINS = {"pirqakamayuq": pirqakamayuq, "kallawaya": kallawaya, "criador": criador, "banquero": banquero, "tendero": tendero, "herrero": herrero, "mercader": mercader,
          "bromista": bromista, "contrabandista": contrabandista}
 for nombre, fn in SKINS.items():
     fn().save(nombre)
@@ -365,7 +386,7 @@ try:
     fuente = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 22)
 except OSError:
     fuente = ImageFont.load_default()
-titulos = {"kallawaya": "Kallawaya", "criador": "Criador", "banquero": "Banquero", "tendero": "Tendero", "herrero": "Herrero", "mercader": "Mercader legendario",
+titulos = {"pirqakamayuq": "Pirqakamayuq", "kallawaya": "Kallawaya", "criador": "Criador", "banquero": "Banquero", "tendero": "Tendero", "herrero": "Herrero", "mercader": "Mercader legendario",
            "bromista": "Bromas", "contrabandista": "Mercado negro"}
 x = 20
 for nombre in SKINS:

@@ -22,6 +22,7 @@ enum class TipoNpc(val id: String, val nombre: String, val profesion: String) {
     CRIADOR("criador", "Criador de animales", "minecraft:shepherd"),
     CONTRABANDISTA("contrabandista", "Mercado negro", "minecraft:nitwit"),
     KALLAWAYA("kallawaya", "Kallawaya", "minecraft:cleric"),
+    PIRQA("pirqa", "Pirqakamayuq", "minecraft:mason"),
     /** Puerta sellada del mercado negro (entidad de interacción): lleva adentro si está desbloqueado. */
     PUERTA_NEGRA("puerta_negra", "Puerta del mercado negro", "minecraft:nitwit"),
     /** Salida del mercado negro: lleva de vuelta a la sala del portal. */
@@ -51,6 +52,9 @@ object Npcs {
 
     private lateinit var registro: MutableMap<UUID, String>
     private val pendientes = mutableMapOf<UUID, Pendiente>()
+
+    /** UUID de las entidades registradas como NPC de este tipo. */
+    fun entidadesDe(tipo: TipoNpc): List<UUID> = registro.filterValues { it == tipo.id }.keys.toList()
 
     fun cargar() {
         registro = BancoMinecraftPer.almacen.cargarNpcs()
@@ -99,6 +103,8 @@ object Npcs {
                     MercadoNegro.puertaEntrada(jugador) // muestra el mensaje de "no te reconoce"
                 }
             TipoNpc.KALLAWAYA -> GuiOfertas.abrir(jugador, Tienda.POCIONES)
+            TipoNpc.PIRQA ->
+                if (Pirqa.desbloqueado(jugador)) GuiOfertas.abrir(jugador, Tienda.PIRQA) else Pirqa.rechazar(jugador)
             TipoNpc.PUERTA_NEGRA -> MercadoNegro.puertaEntrada(jugador)
             TipoNpc.SALIDA_NEGRA -> MercadoNegro.puertaSalida(jugador)
         }

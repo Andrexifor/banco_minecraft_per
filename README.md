@@ -190,6 +190,14 @@ Si un ítem está mal escrito, no aparece en el menú (y sale un aviso en el log
   **regreso** (a tu cama a los 2 s; si no hay cama, no se gasta), **último aliento** (a donde moriste,
   con resistencia al fuego y caída lenta) y **buscador** (20 s viendo a través de las paredes los minerales
   del chunk; solo los ve quien la toma).
+- **Pirqakamayuq, maestro constructor** (tipo `pirqa`, catálogo `pirqa.json`, en el mercado negro): solo lo
+  ven y le hablan quienes compraron el artículo más caro del mercado negro (`pirqa.txt`). Vende maquetas de
+  máquinas (`Maquinas.kt`, guardadas en `maquinas.json`), estructuras de bloques vanilla de 3x3:
+  **Cantera inca** (piedra que vuelve a salir; cinceles 10 -> 1 s; vetas I-III con carbón, hierro, cobre y
+  **tumbaga**; brazo automático cada 5 s a un cofre vecino, sin desbordar), **Fuente del Misti** (lava cada
+  5 min, 2,5 con el Corazón del Misti), **tanque de vidrio y acero** (16 baldes; el Aro de acero lo lleva a
+  32, 48, 80, 160, 400 y 800) y **Huayrachina** (horno que funde con la lava de un tanque cercano).
+  Solo el dueño las usa; nadie las rompe; se desarman con Shift + clic derecho al centro (mano vacía).
 - **Mercado negro (Nether):** se desbloquea **para siempre** la primera vez que el jugador lleva puesto
   el set completo de armadura legendaria (logro "Los dioses te ven de más cerca"). La puerta sellada
   (`puerta_negra`) lleva adentro y la salida (`salida_negra`) devuelve a la sala del portal; los destinos
