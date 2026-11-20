@@ -125,7 +125,8 @@ object Apu {
     fun registrarEventos() {
         cargar()
         ServerLifecycleEvents.SERVER_STARTED.register { servidor ->
-            if (!datos.generado) {
+            // la v0.7.5 inicial lo dejó en el fondo del mundo (no generaba los chunks): se vuelve a buscar
+            if (!datos.generado || datos.y <= servidor.overworld().minY + 5) {
                 try {
                     generar(servidor)
                 } catch (e: Exception) {
@@ -168,7 +169,10 @@ object Apu {
                 val a = Math.toRadians(i * 30.0 + radio / 100.0)
                 val x = spawn.x + (cos(a) * radio).toInt()
                 val z = spawn.z + (sin(a) * radio).toInt()
-                val y = nivel.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z)
+                // getChunk genera el chunk si hace falta (getHeight solo mira chunks ya cargados)
+                val chunk = nivel.getChunk(x shr 4, z shr 4)
+                val y = chunk.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x and 15, z and 15) + 1
+                if (y <= nivel.minY + 5) continue
                 val suelo = BlockPos(x, y - 1, z)
                 if (!nivel.getBlockState(suelo).fluidState.isEmpty) continue
                 if (mejor == null || y > mejor.y) mejor = BlockPos(x, y, z)
