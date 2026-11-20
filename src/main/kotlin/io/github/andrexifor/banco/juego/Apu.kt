@@ -45,8 +45,8 @@ import kotlin.random.Random
  * mod encuentra a 1500–2000 bloques del spawn (apu.json guarda dónde). El Llamero viajero de la plaza
  * cuenta gratis el rumor de dónde está.
  *
- * Mientras duerme es una estatua sobre el altar. Cuando alguien se acerca, despierta: un guerrero de
- * piedra de 6 bloques (modelo propio sobre un esqueleto wither invisible de 800 de vida) que
+ * Mientras duerme es una estatua sobre el altar. Cuando alguien se acerca, despierta: un nevado hecho
+ * guerrero de unos 7 bloques (modelo propio sobre un esqueleto wither invisible de 800 de vida) que
  *  - lanza rocas a los jugadores,
  *  - hace temblar el suelo (daño, empuje y lentitud a quien está cerca),
  *  - invoca cóndores oscuros,
@@ -90,6 +90,7 @@ object Apu {
     private val dano = HashMap<UUID, Float>()
     private var fase2 = false
     private var soledad = 0
+    private var estatuaRenovada = false
     private var tRocas = 100
     private var tTemblor = 200
     private var tCondores = 300
@@ -239,7 +240,7 @@ object Apu {
         comando(servidor, nivel, Vec3(c.x + 0.5, c.y + 1.0, c.z + 0.5),
             "summon minecraft:item_display ${c.x + 0.5} ${c.y + 1.0} ${c.z + 0.5} {Tags:[\"apu_estatua\"],Rotation:[0f,0f]," +
                 "item:{id:\"minecraft:stone\",count:1,components:{\"minecraft:item_model\":\"banco_minecraft_per:apu\"}},item_display:\"fixed\"," +
-                "view_range:4f,transformation:{left_rotation:[0f,1f,0f,0f],right_rotation:[0f,0f,0f,1f],translation:[0f,1.25f,0f],scale:[2.5f,2.5f,2.5f]}}")
+                "view_range:4f,transformation:{left_rotation:[0f,1f,0f,0f],right_rotation:[0f,0f,0f,1f],translation:[0f,1.5f,0f],scale:[3f,3f,3f]}}")
     }
 
     private fun comando(servidor: MinecraftServer, nivel: ServerLevel, p: Vec3, cmd: String) {
@@ -266,6 +267,8 @@ object Apu {
         if (boss == null) {
             if (jefe != null) retirar(servidor) // desapareció sin morir (comando, etc.)
             if (servidor.tickCount % 100 == 0) huerfanos(nivel, c)
+            // al arrancar, la estatua se vuelve a poner (por si cambió su modelo o tamaño)
+            if (!estatuaRenovada) { estatua(servidor, true); estatuaRenovada = true }
             if (System.currentTimeMillis() >= datos.proximo &&
                 cerca.any { it.position().distanceTo(centroV) < RADIO_DESPERTAR && !it.isCreative }) {
                 despertar(servidor, nivel, c)
@@ -304,14 +307,14 @@ object Apu {
         comando(servidor, nivel, p,
             "summon minecraft:wither_skeleton ${p.x} ${p.y} ${p.z} {Tags:[\"apu_jefe\"],PersistenceRequired:1b," +
                 "CustomName:{text:\"Apu de la montaña\",color:\"gold\"},DeathLootTable:\"minecraft:empty\",Health:${VIDA}f," +
-                "attributes:[{id:\"minecraft:max_health\",base:${VIDA}d},{id:\"minecraft:scale\",base:2.5d}," +
+                "attributes:[{id:\"minecraft:max_health\",base:${VIDA}d},{id:\"minecraft:scale\",base:3d}," +
                 "{id:\"minecraft:attack_damage\",base:14d},{id:\"minecraft:movement_speed\",base:0.3d}," +
                 "{id:\"minecraft:knockback_resistance\",base:1d},{id:\"minecraft:follow_range\",base:48d},{id:\"minecraft:armor\",base:10d}]," +
                 "active_effects:[{id:\"minecraft:invisibility\",duration:-1,amplifier:0b,show_particles:0b,show_icon:0b}]}")
         comando(servidor, nivel, p,
             "summon minecraft:item_display ${p.x} ${p.y} ${p.z} {Tags:[\"apu_modelo\"],teleport_duration:2,view_range:4f," +
                 "item:{id:\"minecraft:stone\",count:1,components:{\"minecraft:item_model\":\"banco_minecraft_per:apu\"}},item_display:\"fixed\"," +
-                "transformation:{left_rotation:[0f,1f,0f,0f],right_rotation:[0f,0f,0f,1f],translation:[0f,3f,0f],scale:[6f,6f,6f]}}")
+                "transformation:{left_rotation:[0f,1f,0f,0f],right_rotation:[0f,0f,0f,1f],translation:[0f,2.1f,0f],scale:[4.2f,4.2f,4.2f]}}")
         val caja = AABB(c).inflate(4.0)
         jefe = nivel.getEntitiesOfClass(LivingEntity::class.java, caja) { "apu_jefe" in it.entityTags() }.firstOrNull()?.uuid
         modelo = nivel.getEntitiesOfClass(Display::class.java, caja) { "apu_modelo" in it.entityTags() }.firstOrNull()?.uuid
