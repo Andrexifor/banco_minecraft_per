@@ -166,10 +166,14 @@ def sentado_en_tiana():
         bloque([8.5, -9, 12], [11.5, 1, 15], TELA, "#unku"),
         bloque([4.25, -10, 11.5], [7.75, -9, 17], PIEL, "#mascara"),
         bloque([8.25, -10, 11.5], [11.75, -9, 17], PIEL, "#mascara"),
-        # tiana ancha y maciza, apoyada en el piso (que se note que está sentado sobre algo)
-        bloque([0.5, -1.5, 2], [15.5, 0, 14], oro, "#tiana"),
-        bloque([1.5, -10, 3], [14.5, -1.5, 13], oro, "#base"),
-        bloque([0.5, -10, 2], [15.5, -9, 14], oro, "#tiana"),
+        # el unku cae como un manto desde el regazo hasta el piso y tapa la tiana: solo asoman los pies
+        caja([1, -10, 2.5], [15, 0.5, 15.25], {
+            "south": {"uv": uv(8, 40, 56, 56), "texture": "#unku"},
+            "north": {"uv": uv(56, 40, 8, 56), "texture": "#unku"},
+            "east": {"uv": TELA, "texture": "#unku"},
+            "west": {"uv": TELA, "texture": "#unku"},
+            "down": {"uv": TELA, "texture": "#unku"},
+        }),
     ]
 
 
