@@ -25,6 +25,7 @@ import io.github.andrexifor.banco.juego.Apu
 import io.github.andrexifor.banco.juego.Sombreros
 import io.github.andrexifor.banco.juego.Eventos
 import io.github.andrexifor.banco.juego.Llamero
+import io.github.andrexifor.banco.juego.HuellaPack
 import io.github.andrexifor.banco.nucleo.Banco
 import io.github.andrexifor.banco.nucleo.Catalogo
 import io.github.andrexifor.banco.nucleo.CatalogoLegendarios
@@ -121,6 +122,7 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         Sombreros.registrarEventos()
         Eventos.registrarEventos()
         Llamero.registrarEventos()
+        HuellaPack.registrarEventos()
         LOGGER.info(
             "Banco Minecraft PER listo: {} cuentas, {} productos en la tienda, {} legendarios, {} zonas protegidas",
             banco.todas().size,

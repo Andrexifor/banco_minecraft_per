@@ -5,7 +5,8 @@
   "mixins": [
     "AnvilMenuMixin",
     "ExplosionMixin",
-    "ConsumableMixin"
+    "ConsumableMixin",
+    "DedicatedServerMixin"
   ],
   "injectors": {
     "defaultRequire": 0
