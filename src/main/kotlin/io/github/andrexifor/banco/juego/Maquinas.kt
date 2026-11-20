@@ -110,6 +110,9 @@ object Maquinas {
     private fun dim(l: Level) = l.dimension().identifier().toString()
     private fun en(l: Level, p: BlockPos) = lista.firstOrNull { it.contiene(dim(l), p) }
 
+    /** Los tambos de un jugador, en el orden en que los armó. */
+    fun tambosDe(dueno: String): List<Maquina> = lista.filter { it.tipo == "tambo" && it.dueno == dueno }
+
     /** Para las explosiones: los bloques de una máquina no se rompen. */
     fun esBloque(l: Level, p: BlockPos): Boolean = en(l, p) != null
 
@@ -162,6 +165,14 @@ object Maquinas {
                 capa(1, Blocks.FURNACE.defaultBlockState().setValue(AbstractFurnaceBlock.FACING, dir), null, Blocks.STONE_BRICK_WALL.defaultBlockState())
                 capa(2, Blocks.CAMPFIRE.defaultBlockState(), null, Blocks.STONE_BRICK_WALL.defaultBlockState())
                 capa(3, null, null, Blocks.STONE_BRICK_SLAB.defaultBlockState())
+            }
+            "tambo" -> {
+                // posada del Qhapaq Ñan: piso de andesita, piedra imán al centro, pilares de adobe y techo de paja
+                val adobe = Blocks.MUD_BRICK_WALL.defaultBlockState()
+                capa(0, Blocks.CHISELED_STONE_BRICKS.defaultBlockState(), Blocks.POLISHED_ANDESITE.defaultBlockState(), Blocks.MUD_BRICKS.defaultBlockState())
+                capa(1, Blocks.LODESTONE.defaultBlockState(), null, adobe)
+                capa(2, Blocks.LANTERN.defaultBlockState().setValue(net.minecraft.world.level.block.LanternBlock.HANGING, true), null, adobe)
+                capa(3, Blocks.HAY_BLOCK.defaultBlockState(), Blocks.HAY_BLOCK.defaultBlockState(), Blocks.MUD_BRICKS.defaultBlockState())
             }
         }
         return r
@@ -247,7 +258,7 @@ object Maquinas {
             }
             val m = en(nivel, golpe.blockPos) ?: return@register InteractionResult.PASS
             if (m.dueno != jugador.uuid.toString()) {
-                aviso(jugador, "Esta máquina es de otro jugador.", ChatFormatting.RED)
+                aviso(jugador, if (m.tipo == "tambo") "Este tambo es de otro jugador." else "Esta máquina es de otro jugador.", ChatFormatting.RED)
                 return@register InteractionResult.FAIL
             }
             if (mano != InteractionHand.MAIN_HAND) return@register InteractionResult.PASS
@@ -255,6 +266,8 @@ object Maquinas {
             if (jugador.isShiftKeyDown && s.isEmpty && golpe.blockPos == m.nucleo()) {
                 desarmar(jugador, nivel, m); return@register InteractionResult.SUCCESS
             }
+            // tambo: menú de viajes
+            if (m.tipo == "tambo") { Tambos.abrir(jugador, m); return@register InteractionResult.SUCCESS }
             // 3) mejoras
             val mejora = d?.getStringOr("mejora_maquina", "")?.ifBlank { null }
             if (mejora != null) { mejorar(jugador, nivel, m, s, mejora); return@register InteractionResult.SUCCESS }
@@ -295,6 +308,9 @@ object Maquinas {
             corazon = d.getBooleanOr("corazon", false), nivelTanque = d.getIntOr("nivelTanque", 0), lava = d.getIntOr("lava", 0),
             facing = j.direction.opposite.serializedName,
         )
+        if (tipo == "tambo" && tambosDe(m.dueno).size >= Tambos.MAXIMO) {
+            aviso(j, "Ya tienes ${Tambos.MAXIMO} tambos. Desarma uno para armar otro.", ChatFormatting.RED); return
+        }
         val piezas = piezas(m)
         val zona = (-1..1).flatMap { dx -> (-1..1).flatMap { dz -> (0 until m.alto()).map { dy -> base.offset(dx, dy, dz) } } }
         if (zona.any { !nivel.getBlockState(it).canBeReplaced() } || zona.any { en(nivel, it) != null }) {
@@ -310,7 +326,7 @@ object Maquinas {
         guardar()
         s.shrink(1)
         nivel.playSound(null, base, SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 1f, 0.8f)
-        aviso(j, "¡${nombre(m.tipo)} construida! Shift + clic derecho al centro con la mano vacía para desarmarla.")
+        aviso(j, "¡Listo: ${nombre(m.tipo)}! Shift + clic derecho al centro con la mano vacía para desarmarlo.")
     }
 
     private fun desarmar(j: ServerPlayer, nivel: ServerLevel, m: Maquina) {
@@ -319,7 +335,8 @@ object Maquinas {
         zona.forEach { nivel.setBlock(it, Blocks.AIR.defaultBlockState(), 3) }
         guardar()
         val servidor = nivel.server
-        val maqueta = GuiOfertas.crearTexto(servidor, BancoMinecraftPer.pirqa.buscar(m.tipo)?.item ?: "") ?: return
+        val texto = if (m.tipo == "tambo") Kuraka.MAQUETA_TAMBO else BancoMinecraftPer.pirqa.buscar(m.tipo)?.item ?: ""
+        val maqueta = GuiOfertas.crearTexto(servidor, texto) ?: return
         val raiz = maqueta.get(DataComponents.CUSTOM_DATA)?.copyTag() ?: CompoundTag()
         val interno = raiz.getCompoundOrEmpty(MARCA)
         interno.putInt("vel", m.vel); interno.putInt("vetas", m.vetas); interno.putBoolean("auto", m.auto)
@@ -327,7 +344,7 @@ object Maquinas {
         raiz.put(MARCA, interno)
         maqueta.set(DataComponents.CUSTOM_DATA, CustomData.of(raiz))
         Inventarios.dar(j, maqueta)
-        aviso(j, "${nombre(m.tipo)} desarmada. La maqueta guarda sus mejoras.")
+        aviso(j, "${nombre(m.tipo)}: desarmado. La maqueta guarda sus mejoras.")
     }
 
     private fun mejorar(j: ServerPlayer, nivel: ServerLevel, m: Maquina, s: ItemStack, mejora: String) {
@@ -369,7 +386,7 @@ object Maquinas {
     private fun tiempoFuente(m: Maquina) = if (m.corazon) 150 else 300
 
     private fun nombre(t: String) = when (t) {
-        "cantera" -> "Cantera inca"; "fuente" -> "Fuente del Misti"; "tanque" -> "Tanque de vidrio y acero"; else -> "Huayrachina"
+        "cantera" -> "Cantera inca"; "fuente" -> "Fuente del Misti"; "tanque" -> "Tanque de vidrio y acero"; "tambo" -> "Tambo"; else -> "Huayrachina"
     }
 
     private fun tanqueCerca(m: Maquina, condicion: (Maquina) -> Boolean) = lista.firstOrNull {

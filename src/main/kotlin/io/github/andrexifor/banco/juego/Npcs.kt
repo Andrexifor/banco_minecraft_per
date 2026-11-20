@@ -23,6 +23,12 @@ enum class TipoNpc(val id: String, val nombre: String, val profesion: String) {
     CONTRABANDISTA("contrabandista", "Mercado negro", "minecraft:nitwit"),
     KALLAWAYA("kallawaya", "Kallawaya", "minecraft:cleric"),
     PIRQA("pirqa", "Pirqakamayuq", "minecraft:mason"),
+    KURAKA("kuraka", "Kuraka", "minecraft:farmer"),
+    LLAMERO("llamero", "Llamero viajero", "minecraft:shepherd"),
+    /** Altar de la ofrenda al Inti (entidad de interacción en la plaza). */
+    OFRENDA("ofrenda", "Altar de la ofrenda", "minecraft:nitwit"),
+    /** Tambo de la plaza (entidad de interacción): viajes a los tambos propios. */
+    TAMBO("tambo", "Tambo de la plaza", "minecraft:nitwit"),
     /** Puerta sellada del mercado negro (entidad de interacción): lleva adentro si está desbloqueado. */
     PUERTA_NEGRA("puerta_negra", "Puerta del mercado negro", "minecraft:nitwit"),
     /** Salida del mercado negro: lleva de vuelta a la sala del portal. */
@@ -105,6 +111,10 @@ object Npcs {
             TipoNpc.KALLAWAYA -> GuiOfertas.abrir(jugador, Tienda.POCIONES)
             TipoNpc.PIRQA ->
                 if (Pirqa.desbloqueado(jugador)) GuiOfertas.abrir(jugador, Tienda.PIRQA) else Pirqa.rechazar(jugador)
+            TipoNpc.KURAKA -> Kuraka.abrir(jugador)
+            TipoNpc.LLAMERO -> Apu.rumor(jugador)
+            TipoNpc.OFRENDA -> Ofrenda.abrir(jugador)
+            TipoNpc.TAMBO -> Tambos.abrir(jugador, null)
             TipoNpc.PUERTA_NEGRA -> MercadoNegro.puertaEntrada(jugador)
             TipoNpc.SALIDA_NEGRA -> MercadoNegro.puertaSalida(jugador)
         }
@@ -116,6 +126,7 @@ object Npcs {
         for (e in entidades) {
             if (e is Player) continue
             registro[e.uuid] = tipo.id
+            if (tipo == TipoNpc.TAMBO) Tambos.fijarCentral(e)
             n++
         }
         if (n > 0) BancoMinecraftPer.almacen.guardarNpcs(registro)

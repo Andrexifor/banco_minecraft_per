@@ -17,6 +17,13 @@ import io.github.andrexifor.banco.juego.Pociones
 import io.github.andrexifor.banco.juego.Maquinas
 import io.github.andrexifor.banco.juego.Pirqa
 import io.github.andrexifor.banco.juego.SeresCosmicos
+import io.github.andrexifor.banco.juego.Mascotas
+import io.github.andrexifor.banco.juego.Kuraka
+import io.github.andrexifor.banco.juego.Ofrenda
+import io.github.andrexifor.banco.juego.Tambos
+import io.github.andrexifor.banco.juego.Apu
+import io.github.andrexifor.banco.juego.Sombreros
+import io.github.andrexifor.banco.juego.Eventos
 import io.github.andrexifor.banco.nucleo.Banco
 import io.github.andrexifor.banco.nucleo.Catalogo
 import io.github.andrexifor.banco.nucleo.CatalogoLegendarios
@@ -105,6 +112,13 @@ object BancoMinecraftPer : DedicatedServerModInitializer {
         Pociones.registrarEventos()
         Maquinas.registrarEventos()
         Pirqa.registrarEventos()
+        Mascotas.registrarEventos()
+        Kuraka.registrarEventos()
+        Ofrenda.registrarEventos()
+        Tambos.cargar()
+        Apu.registrarEventos()
+        Sombreros.registrarEventos()
+        Eventos.registrarEventos()
         LOGGER.info(
             "Banco Minecraft PER listo: {} cuentas, {} productos en la tienda, {} legendarios, {} zonas protegidas",
             banco.todas().size,

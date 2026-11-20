@@ -76,8 +76,38 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
                     ).joinToString(",") + "]",
                     precio = 1_000_000, descripcion = "No te la puedes quitar. Si mueres, desaparece",
                 ),
+                Oferta("sombrero_chullo", "Chullo", sombrero("chullo"), precio = 150_000,
+                    descripcion = "Cosmético: no ocupa el casco", anunciar = false),
+                Oferta("sombrero_chotano", "Sombrero chotano", sombrero("chotano"), precio = 200_000,
+                    descripcion = "Cosmético: no ocupa el casco", anunciar = false),
+                Oferta("sombrero_montera", "Montera cusqueña", sombrero("montera"), precio = 250_000,
+                    descripcion = "Cosmético: no ocupa el casco", anunciar = false),
+                Oferta("sombrero_mascaipacha", "Mascaipacha", sombrero("mascaipacha"), precio = 2_000_000,
+                    descripcion = "Cosmético: la borla real del Sapa Inca"),
             ),
         )
+
+        // ---------- sombreros cosméticos (Sombreros.kt los pone sobre la cabeza) ----------
+        class InfoSombrero(val id: String, val nombre: String, val color: String, val lore: String)
+
+        val SOMBREROS = listOf(
+            InfoSombrero("chullo", "Chullo", "red", "Tejido con lana de alpaca"),
+            InfoSombrero("montera", "Montera cusqueña", "dark_red", "La de las fiestas del Cusco"),
+            InfoSombrero("chotano", "Sombrero chotano", "yellow", "Paja toquilla de Chota"),
+            InfoSombrero("mascaipacha", "Mascaipacha", "gold", "La borla real del Sapa Inca"),
+            InfoSombrero("chullo_navideno", "Chullo navideño", "red", "Regalo de Navidad"),
+            InfoSombrero("sombrero_fiesta", "Sombrero de Año Nuevo", "gold", "Regalo de Año Nuevo"),
+            InfoSombrero("sombrero_patrio", "Sombrero bicolor", "red", "Regalo de Fiestas Patrias"),
+        )
+
+        /** El ítem de un sombrero en formato /give. */
+        fun sombrero(id: String): String {
+            val s = SOMBREROS.firstOrNull { it.id == id } ?: return ""
+            return "minecraft:paper[item_model=\"banco_minecraft_per:sombrero_$id\",max_stack_size=1," +
+                nombre(s.nombre, s.color) + "," +
+                lore(s.lore, "Cosmético: no ocupa el casco", "Clic derecho: te lo pones o te lo quitas") + "," +
+                "custom_data={$MARCA:{sombrero:\"$id\"}}]"
+        }
 
         /** Cuerpo de entity_data para huevos: animal domesticado, persistente y con nombre. */
         private fun animal(id: String, nombre: String, color: String, extra: String) =
@@ -228,11 +258,26 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
                     "condor", "Cóndor guardián",
                     especial("feather", "pluma_condor", "condor", "1b", "Pluma del cóndor guardián", "gold", 1,
                         "Clic derecho: llama o despide a tu cóndor", "Vuela a tu alrededor y ataca a los monstruos",
-                        "No se puede montar; te acompaña mientras estés conectado"),
+                        "No se puede montar; se queda contigo aunque te desconectes"),
                     precio = 5_000_000, descripcion = "Un cóndor andino que te protege volando a tu alrededor",
                 ),
+                Oferta("perro", "Perro peruano sin pelo", MASCOTA_PERRO, precio = 3_000_000,
+                    descripcion = "Te acompaña y muerde a los monstruos que se te acercan"),
+                Oferta("cuy", "Cuy", MASCOTA_CUY, precio = 300_000,
+                    descripcion = "Un cuy que trota a tu lado (no pelea)", anunciar = false),
+                Oferta("vizcacha", "Vizcacha", MASCOTA_VIZCACHA, precio = 400_000,
+                    descripcion = "Una vizcacha que te sigue a saltitos (no pelea)", anunciar = false),
             ),
         )
+
+        // ---------- mascotas de compañía (Mascotas.kt) ----------
+        val MASCOTA_PERRO get() = especial("paper", "silbato_perro", "mascota", "\"perro\"", "Silbato del perro peruano", "gold", 1,
+            "Clic derecho: llama o despide a tu perro", "Muerde a los monstruos que se te acercan",
+            "Te acompaña siempre, aunque te desconectes")
+        val MASCOTA_CUY get() = especial("paper", "mazorca_cuy", "mascota", "\"cuy\"", "Alfalfa del cuy", "green", 1,
+            "Clic derecho: llama o despide a tu cuy", "Trota a tu lado (no pelea)")
+        val MASCOTA_VIZCACHA get() = especial("paper", "pasto_vizcacha", "mascota", "\"vizcacha\"", "Ichu de la vizcacha", "yellow", 1,
+            "Clic derecho: llama o despide a tu vizcacha", "Te sigue a saltitos (no pelea)")
 
         // ---------- artículos del Sembrador del Vacío: mochilas ----------
 
