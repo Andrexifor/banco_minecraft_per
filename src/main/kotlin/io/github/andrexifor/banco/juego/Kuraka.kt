@@ -250,7 +250,7 @@ object Kuraka {
                     else -> texto("En progreso…", ChatFormatting.DARK_GRAY)
                 },
             )
-            val b = GuiElementBuilder(if (hecho) ItemStack(Items.LIME_DYE) else icono(enc))
+            val b = GuiElementBuilder(if (hecho) ItemStack(Items.DYE.lime()) else icono(enc))
                 .setName(texto(enc.texto, if (hecho) ChatFormatting.DARK_GREEN else COLOR[enc.nivel]))
                 .setLore(lore)
             if (listo && !hecho) b.glow()

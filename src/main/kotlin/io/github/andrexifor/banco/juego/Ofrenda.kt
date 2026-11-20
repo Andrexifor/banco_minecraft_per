@@ -130,7 +130,7 @@ object Ofrenda {
         for (i in 0 until 9) {
             gui.setSlot(
                 9 + i,
-                GuiElementBuilder(if (i < llenas) Items.YELLOW_STAINED_GLASS_PANE else Items.GRAY_STAINED_GLASS_PANE)
+                GuiElementBuilder(if (i < llenas) Items.STAINED_GLASS_PANE.yellow() else Items.STAINED_GLASS_PANE.gray())
                     .setName(texto("$puntos / $META", ChatFormatting.GOLD)),
             )
         }
