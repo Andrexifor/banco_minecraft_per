@@ -174,15 +174,16 @@ Si un ítem está mal escrito, no aparece en el menú (y sale un aviso en el log
   `banco_minecraft_per:inti_sol`); el datapack de la plaza lo muestra gigante con un `item_display`.
 - **Sembrador del Vacío — artículos** (botón en la tienda, catálogo `sembrador.json`): mochilas andinas
   **chuspa** (5 casillas), **q'epi** (18) y **gran q'epi** (27); el **hilo de alpaca** en la otra mano agranda
-  una mochila sin perder su contenido. **Chuspa del Ukhu Pacha**: abre el cofre de Ender. **Chuspa enlazada**:
-  se enlaza abriendo un cofre (simple o doble) con ella en la otra mano y luego lo abre desde cualquier lugar;
-  Shift + clic la desenlaza. El contenido viaja en el ítem; al abrir sale al menú y vuelve al cerrar (sin
+  una mochila sin perder su contenido. **Chuspa del Ukhu Pacha**: abre el cofre de Ender. **Chuspa enlazada** (cofre
+  simple, 27) y **chuspa enlazada doble** (cofre doble, 54): se enlazan abriendo un cofre de su tamaño con
+  ella en la otra mano y luego lo abren desde cualquier lugar; Shift + clic la desenlaza. El contenido viaja en el ítem; al abrir sale al menú y vuelve al cerrar (sin
   duplicados); una mochila no se guarda dentro de otra.
 - **Flor de traslado** (Criador): guarda un animal (no de otro dueño) con todos sus datos y lo libera
   donde hagas clic; se gasta al liberarlo. Las vacías se apilan.
 - **Cóndor guardián** (Criador, pluma): modelo propio (`item_display`) que el mod mueve: vuela en círculos
-  a 3–5 bloques del dueño y ataca a los monstruos cercanos; no se monta ni recibe daño; existe mientras el
-  dueño está conectado (clic derecho a la pluma lo llama o lo despide). Texturas: `scripts/generar_v075.py`.
+  a 3–5 bloques del dueño y ataca a los monstruos cercanos; no se monta ni recibe daño. Clic derecho a la pluma lo llama
+  o lo despide; llamado, vuelve solo al reconectar, al reaparecer tras morir o tras reiniciar el servidor
+  (`banco_minecraft_per/condores.txt`). Texturas: `scripts/generar_v075.py`.
 - **Mercado negro (Nether):** se desbloquea **para siempre** la primera vez que el jugador lleva puesto
   el set completo de armadura legendaria (logro "Los dioses te ven de más cerca"). La puerta sellada
   (`puerta_negra`) lleva adentro y la salida (`salida_negra`) devuelve a la sala del portal; los destinos

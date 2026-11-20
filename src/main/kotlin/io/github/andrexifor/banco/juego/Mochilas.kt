@@ -30,6 +30,8 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.component.CustomData
 import net.minecraft.world.item.component.ItemContainerContents
 import net.minecraft.world.level.block.ChestBlock
+import net.minecraft.world.level.block.entity.ChestBlockEntity
+import net.minecraft.world.level.block.state.properties.ChestType
 import java.util.UUID
 
 /**
@@ -37,8 +39,9 @@ import java.util.UUID
  *  - chuspa (5 casillas), q'epi (18) y gran q'epi (27): lo que llevan viaja dentro del ítem
  *    (componente container). Con hilo de alpaca en la otra mano, se agrandan un tamaño.
  *  - chuspa del Ukhu Pacha: abre el cofre de Ender del jugador.
- *  - chuspa enlazada: se enlaza al abrir un cofre (simple o doble) teniéndola en la otra mano;
- *    luego abre ese cofre desde cualquier lugar. Shift + clic derecho la desenlaza.
+ *  - chuspa enlazada (cofre simple, 27) y chuspa enlazada doble (cofre doble, 54): se enlazan al abrir
+ *    un cofre de ese tamaño teniéndolas en la otra mano; luego lo abren desde cualquier lugar.
+ *    Shift + clic derecho la desenlaza.
  *
  * Anti-duplicado: al abrir una mochila su contenido sale del ítem al menú y vuelve al cerrar,
  * buscando la mochila por un id propio. Si la mochila ya no está (se tiró), el contenido se le da
@@ -53,6 +56,7 @@ object Mochilas {
         GRAN_QEPI("gran_qepi", 27, "Gran q'epi", null),
         UKHU("ukhu", 0, "Chuspa del Ukhu Pacha", null),
         ENLAZADA("enlazada", 0, "Chuspa enlazada", null),
+        ENLAZADA_DOBLE("enlazada_doble", 0, "Chuspa enlazada doble", null),
         ;
 
         companion object {
@@ -108,9 +112,21 @@ object Mochilas {
                 val j = servidor.playerList.getPlayer(uuid) ?: continue
                 if (j.containerMenu !is ChestMenu) continue
                 it.remove()
+                val nivelCofre = j.level()
+                val estado = nivelCofre.getBlockState(clic.pos)
+                val esDoble = estado.block is ChestBlock && estado.getValue(ChestBlock.TYPE) != ChestType.SINGLE
                 for (mano in InteractionHand.entries) {
                     val s = j.getItemInHand(mano)
-                    if (tipo(s) == Tipo.ENLAZADA && datos(s)?.contains("enlace") != true) {
+                    val t = tipo(s)
+                    if ((t == Tipo.ENLAZADA || t == Tipo.ENLAZADA_DOBLE) && datos(s)?.contains("enlace") != true) {
+                        if (t == Tipo.ENLAZADA && esDoble) {
+                            aviso(j, "Esta chuspa es para cofres simples. Para un cofre doble usa la chuspa enlazada doble.", ChatFormatting.RED)
+                            break
+                        }
+                        if (t == Tipo.ENLAZADA_DOBLE && !esDoble) {
+                            aviso(j, "Esta chuspa es para cofres dobles. Para un cofre simple usa la chuspa enlazada.", ChatFormatting.RED)
+                            break
+                        }
                         editar(s) { d ->
                             val e = CompoundTag()
                             e.putString("dim", clic.dim)
@@ -135,7 +151,7 @@ object Mochilas {
                     Component.literal(t.nombre).withStyle(ChatFormatting.DARK_PURPLE)))
                 j.level().playSound(null, j.blockPosition(), SoundEvents.ENDER_CHEST_OPEN, SoundSource.PLAYERS, 0.5f, 1.2f)
             }
-            Tipo.ENLAZADA -> enlazada(j, s)
+            Tipo.ENLAZADA, Tipo.ENLAZADA_DOBLE -> enlazada(j, s, t == Tipo.ENLAZADA_DOBLE)
             else -> {
                 val otra = j.getItemInHand(if (mano == InteractionHand.MAIN_HAND) InteractionHand.OFF_HAND else InteractionHand.MAIN_HAND)
                 if (esHilo(otra) && t.siguiente != null) mejorar(j, s, t, otra) else abrir(j, s, t)
@@ -213,7 +229,7 @@ object Mochilas {
         override fun stillValid(player: Player): Boolean = sigue()
     }
 
-    private fun enlazada(j: ServerPlayer, s: ItemStack) {
+    private fun enlazada(j: ServerPlayer, s: ItemStack, doble: Boolean) {
         val enlace = datos(s)?.getCompoundOrEmpty("enlace")?.takeIf { !it.isEmpty }
         if (j.isShiftKeyDown && enlace != null) {
             editar(s) { it.remove("enlace") }
@@ -231,8 +247,17 @@ object Mochilas {
         val estado = nivel.getBlockState(pos)
         val bloque = estado.block as? ChestBlock
             ?: return aviso(j, "El cofre enlazado ya no está. Shift + clic derecho para desenlazarla.", ChatFormatting.RED)
-        val base = ChestBlock.getContainer(bloque, estado, nivel, pos, true)
-            ?: return aviso(j, "No se puede abrir ese cofre ahora.", ChatFormatting.RED)
+        // la simple abre solo su cofre (27); la doble, el cofre doble completo (54)
+        val base: Container = if (doble) {
+            if (estado.getValue(ChestBlock.TYPE) == ChestType.SINGLE) {
+                return aviso(j, "El cofre enlazado ya no es doble.", ChatFormatting.RED)
+            }
+            ChestBlock.getContainer(bloque, estado, nivel, pos, true)
+                ?: return aviso(j, "No se puede abrir ese cofre ahora.", ChatFormatting.RED)
+        } else {
+            nivel.getBlockEntity(pos) as? ChestBlockEntity
+                ?: return aviso(j, "No se puede abrir ese cofre ahora.", ChatFormatting.RED)
+        }
         val remoto = Remoto(base) { nivel.getBlockState(pos).block is ChestBlock }
         val titulo = Component.literal("Cofre en ${pos.x}, ${pos.y}, ${pos.z}").withStyle(ChatFormatting.GOLD)
         j.openMenu(SimpleMenuProvider({ mid, inv, _ ->

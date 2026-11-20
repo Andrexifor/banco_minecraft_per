@@ -4,6 +4,7 @@ import io.github.andrexifor.banco.BancoMinecraftPer
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import net.fabricmc.fabric.api.event.player.UseItemCallback
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents
+import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.ChatFormatting
 import net.minecraft.core.component.DataComponents
 import net.minecraft.network.chat.Component
@@ -19,6 +20,7 @@ import net.minecraft.world.entity.monster.Enemy
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
+import java.nio.file.Files
 import java.util.UUID
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -30,7 +32,9 @@ import kotlin.math.sin
  * No es una criatura nueva (eso exigiría un mod en el cliente): es un modelo propio del resource pack
  * (item_display "condor") que el mod mueve cada tick. Vuela en círculos a 3–5 bloques del dueño y,
  * si un monstruo se acerca, baja en picada y lo ataca (el golpe cuenta como del jugador). No se puede
- * montar ni recibe daño; existe mientras el dueño esté conectado.
+ * montar ni recibe daño. Una vez llamado se queda contigo: si te desconectas, mueres o se reinicia el
+ * servidor, vuelve solo cuando regresas (la lista de dueños se guarda en banco_minecraft_per/condores.txt).
+ * Solo se va si lo despides con la pluma.
  */
 object Condor {
     private const val ETIQUETA = "banco_condor"
@@ -44,26 +48,67 @@ object Condor {
         var subir = 0
     }
 
+    /** Cóndores en el mundo ahora mismo (dueño -> display). */
     private val activos = HashMap<UUID, Estado>()
+
+    /** Dueños que tienen su cóndor llamado (persiste entre conexiones y reinicios). */
+    private val llamados = HashSet<UUID>()
+    private val archivo = FabricLoader.getInstance().gameDir.resolve(BancoMinecraftPer.MOD_ID).resolve("condores.txt")
+
+    private fun cargarLlamados() {
+        try {
+            if (Files.exists(archivo)) {
+                Files.readAllLines(archivo).mapNotNull { runCatching { UUID.fromString(it.trim()) }.getOrNull() }.forEach { llamados += it }
+            }
+        } catch (e: Exception) {
+            BancoMinecraftPer.LOGGER.warn("No se pudo leer condores.txt: {}", e.message)
+        }
+    }
+
+    private fun guardarLlamados() {
+        try {
+            Files.createDirectories(archivo.parent)
+            Files.write(archivo, llamados.map { it.toString() })
+        } catch (e: Exception) {
+            BancoMinecraftPer.LOGGER.warn("No se pudo guardar condores.txt: {}", e.message)
+        }
+    }
 
     private fun esPluma(s: ItemStack) = !s.isEmpty &&
         s.get(DataComponents.CUSTOM_DATA)?.copyTag()?.getCompoundOrEmpty(BancoMinecraftPer.MOD_ID)?.contains("condor") == true
 
     fun registrarEventos() {
+        cargarLlamados()
         UseItemCallback.EVENT.register { jugador, _, mano ->
             if (jugador !is ServerPlayer || !esPluma(jugador.getItemInHand(mano))) return@register InteractionResult.PASS
-            if (activos.containsKey(jugador.uuid)) {
+            if (jugador.uuid in llamados) {
+                llamados -= jugador.uuid
+                guardarLlamados()
                 despedir(jugador.uuid)
                 jugador.sendSystemMessage(Component.literal("Tu cóndor vuelve a las montañas.").withStyle(ChatFormatting.GRAY))
             } else {
+                llamados += jugador.uuid
+                guardarLlamados()
                 llamar(jugador)
+                jugador.sendSystemMessage(Component.literal("¡Tu cóndor guardián llegó! Se queda contigo hasta que lo despidas.").withStyle(ChatFormatting.GOLD))
             }
             InteractionResult.SUCCESS
         }
+        // al desconectarse el cóndor se retira del mundo, pero sigue llamado: vuelve al reconectar
         ServerPlayConnectionEvents.DISCONNECT.register { handler, _ -> despedir(handler.player.uuid) }
         ServerTickEvents.END_SERVER_TICK.register { servidor ->
+            if (servidor.tickCount % 20 == 0) reponer(servidor)
             mover(servidor)
             if (servidor.tickCount % 100 == 0) limpiar(servidor)
+        }
+    }
+
+    /** Los dueños conectados y vivos que tienen su cóndor llamado lo tienen en el mundo. */
+    private fun reponer(servidor: MinecraftServer) {
+        for (uuid in llamados) {
+            if (activos.containsKey(uuid)) continue
+            val j = servidor.playerList.getPlayer(uuid) ?: continue
+            if (!j.isDeadOrDying) llamar(j)
         }
     }
 
@@ -83,7 +128,6 @@ object Condor {
             ?: return
         activos[j.uuid] = Estado(d.uuid, nivel)
         nivel.playSound(null, j.blockPosition(), SoundEvents.PHANTOM_FLAP, SoundSource.NEUTRAL, 0.6f, 0.7f)
-        j.sendSystemMessage(Component.literal("¡Tu cóndor guardián llegó!").withStyle(ChatFormatting.GOLD))
     }
 
     private fun despedir(dueno: UUID) {
@@ -96,6 +140,7 @@ object Condor {
         val tick = servidor.tickCount
         for ((dueno, e) in activos.entries.toList()) {
             val j = servidor.playerList.getPlayer(dueno)
+            // sin dueño conectado o muerto: se retira y vuelve solo cuando el dueño regresa (reponer)
             if (j == null || j.isDeadOrDying) { despedir(dueno); continue }
             val nivel = j.level() as ServerLevel
             if (nivel != e.nivel) { // cambió de dimensión: el cóndor lo sigue

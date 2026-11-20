@@ -86,6 +86,15 @@ def candado(px, y0):
     px[15, 21] = NEGRO; px[16, 21] = NEGRO; px[15, 22] = NEGRO
 
 
+def dos_candados(px, y0):
+    for cx in (11, 20):
+        for y in range(19, 25):
+            for x in range(cx - 2, cx + 3):
+                px[x, y] = ORO if (x + y) % 5 else ORO_S
+        px[cx - 1, 17] = ORO_S; px[cx + 1, 17] = ORO_S; px[cx - 1, 18] = ORO_S; px[cx + 1, 18] = ORO_S; px[cx, 16] = ORO_S
+        px[cx, 21] = NEGRO; px[cx, 22] = NEGRO
+
+
 def hilo():
     img = lienzo(); px = img.load()
     for y in range(T):
@@ -218,6 +227,7 @@ def main():
     guardar_item("gran_qepi", bolsa(26, 22, AGUAYO[::-1], hexc("5a2a14")))
     guardar_item("chuspa_ukhu", bolsa(16, 14, [hexc("4b1d6b"), hexc("2a0f3d")], hexc("6d2f99"), simbolo=ojo_ukhu))
     guardar_item("chuspa_enlazada", bolsa(16, 14, [hexc("b8741a"), hexc("f4c430")], hexc("8a5a0c"), simbolo=candado))
+    guardar_item("chuspa_enlazada_doble", bolsa(24, 18, [hexc("f4c430"), hexc("b8741a"), hexc("ffe27a")], hexc("8a5a0c"), simbolo=dos_candados))
     guardar_item("hilo_alpaca", hilo())
     guardar_item("flor_traslado", flor(False))
     guardar_item("flor_llena", flor(True))

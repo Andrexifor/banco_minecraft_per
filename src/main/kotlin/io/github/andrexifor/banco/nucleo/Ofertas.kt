@@ -286,9 +286,16 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
                 Oferta(
                     "chuspa_enlazada", "Chuspa enlazada",
                     especial("leather", "chuspa_enlazada", "mochila", "\"enlazada\"", "Chuspa enlazada", "gold", 1,
-                        "Se enlaza a un cofre (simple o doble):", "tenla en la otra mano y abre el cofre",
+                        "Se enlaza a un cofre simple (27 casillas):", "tenla en la otra mano y abre el cofre",
                         "Luego, clic derecho: abre ese cofre desde lejos", "Shift + clic derecho: la desenlaza"),
-                    precio = 900_000, descripcion = "Abre un cofre tuyo desde cualquier lugar",
+                    precio = 800_000, descripcion = "Abre un cofre simple tuyo desde cualquier lugar",
+                ),
+                Oferta(
+                    "chuspa_enlazada_doble", "Chuspa enlazada doble",
+                    especial("leather", "chuspa_enlazada_doble", "mochila", "\"enlazada_doble\"", "Chuspa enlazada doble", "gold", 1,
+                        "Se enlaza a un cofre doble (54 casillas):", "tenla en la otra mano y abre el cofre",
+                        "Luego, clic derecho: abre ese cofre desde lejos", "Shift + clic derecho: la desenlaza"),
+                    precio = 1_600_000, descripcion = "Abre un cofre doble tuyo desde cualquier lugar",
                 ),
             ),
         )
