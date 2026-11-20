@@ -118,7 +118,9 @@ object SeresCosmicos {
                         val visible = if (CERCA in etiquetas) estado != Estado.LEJOS else estado == Estado.LEJOS
                         datos += SynchedEntityData.DataValue.create(ESCALA!!, if (visible) Vector3f(d.entityData.get(ESCALA)) else CERO)
                         if (BILLBOARD != null && (CUERPO in etiquetas || BRAZO in etiquetas)) {
-                            datos += SynchedEntityData.DataValue.create(BILLBOARD, if (estado == Estado.MIRA) VERTICAL else FIJO)
+                            // el que descansa sentado no trabaja: siempre mira al jugador, venga de donde venga
+                            val mira = estado == Estado.MIRA || Trabajo.SENTADO.etiqueta in etiquetas
+                            datos += SynchedEntityData.DataValue.create(BILLBOARD, if (mira) VERTICAL else FIJO)
                         }
                     }
                     // brazo: animación de trabajo o en reposo mirando al jugador
