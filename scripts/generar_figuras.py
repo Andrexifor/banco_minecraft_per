@@ -166,8 +166,10 @@ def sentado_en_tiana():
         bloque([8.5, -9, 12], [11.5, 1, 15], TELA, "#unku"),
         bloque([4.25, -10, 11.5], [7.75, -9, 17], PIEL, "#mascara"),
         bloque([8.25, -10, 11.5], [11.75, -9, 17], PIEL, "#mascara"),
-        bloque([2, -1, 3], [14, 0, 13], oro, "#tiana"),
-        bloque([4, -10, 5], [12, -1, 11], oro, "#base"),
+        # tiana ancha y maciza, apoyada en el piso (que se note que está sentado sobre algo)
+        bloque([0.5, -1.5, 2], [15.5, 0, 14], oro, "#tiana"),
+        bloque([1.5, -10, 3], [14.5, -1.5, 13], oro, "#base"),
+        bloque([0.5, -10, 2], [15.5, -9, 14], oro, "#tiana"),
     ]
 
 
