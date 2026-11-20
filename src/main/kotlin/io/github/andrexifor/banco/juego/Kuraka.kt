@@ -44,8 +44,7 @@ object Kuraka {
     const val MAQUETA_TAMBO = "minecraft:paper[item_model=\"banco_minecraft_per:maqueta_tambo\",max_stack_size=1," +
         "custom_name={text:\"Maqueta: Tambo\",color:\"gold\",italic:false}," +
         "lore=[{text:\"Posada del Qhapaq Ñan: viaja entre tus tambos\",color:\"gray\",italic:false}," +
-        "{text:\"y al tambo de la plaza (S/ 10,000 por viaje)\",color:\"gray\",italic:false}," +
-        "{text:\"Máximo 3 tambos por jugador\",color:\"gray\",italic:false}," +
+        "{text:\"y al tambo de la plaza (S/ 1,000 por viaje)\",color:\"gray\",italic:false}," +
         "{text:\"Clic derecho sobre el suelo: se arma (3x3)\",color:\"gray\",italic:false}," +
         "{text:\"Shift + clic derecho al centro, mano vacía: se desarma\",color:\"gray\",italic:false}]," +
         "custom_data={banco_minecraft_per:{maqueta:\"tambo\"}}]"
@@ -276,7 +275,7 @@ object Kuraka {
                 listOf(
                     texto("Un tambo tuyo: viaja entre tus tambos", ChatFormatting.GRAY),
                     texto("y al tambo de la plaza", ChatFormatting.GRAY),
-                    texto("Cada viaje: ${Formato.soles(Tambos.PRECIO_VIAJE)} · máximo ${Tambos.MAXIMO} tambos", ChatFormatting.GRAY),
+                    texto("Cada viaje: ${Formato.soles(Tambos.PRECIO_VIAJE)}", ChatFormatting.GRAY),
                     texto("Precio: ${Formato.soles(PRECIO_TAMBO)} (con impuesto ${Formato.soles(total)})", ChatFormatting.YELLOW),
                     texto("Clic para comprar", ChatFormatting.YELLOW),
                 ),

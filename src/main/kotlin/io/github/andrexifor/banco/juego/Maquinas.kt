@@ -308,9 +308,6 @@ object Maquinas {
             corazon = d.getBooleanOr("corazon", false), nivelTanque = d.getIntOr("nivelTanque", 0), lava = d.getIntOr("lava", 0),
             facing = j.direction.opposite.serializedName,
         )
-        if (tipo == "tambo" && tambosDe(m.dueno).size >= Tambos.MAXIMO) {
-            aviso(j, "Ya tienes ${Tambos.MAXIMO} tambos. Desarma uno para armar otro.", ChatFormatting.RED); return
-        }
         val piezas = piezas(m)
         val zona = (-1..1).flatMap { dx -> (-1..1).flatMap { dz -> (0 until m.alto()).map { dy -> base.offset(dx, dy, dz) } } }
         if (zona.any { !nivel.getBlockState(it).canBeReplaced() } || zona.any { en(nivel, it) != null }) {

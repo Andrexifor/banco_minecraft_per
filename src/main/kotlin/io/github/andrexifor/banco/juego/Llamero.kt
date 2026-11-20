@@ -30,9 +30,18 @@ object Llamero {
     /** Paradas del recorrido, desde el centro de la plaza (x, z). */
     private val RUTA = listOf(15.0 to 5.0, 11.0 to 0.5, 0.5 to -11.0, -9.0 to 0.5, 0.5 to 11.0, 11.0 to 0.5)
 
+    /** Lo que dice, sorprendido, cuando alguien se le acerca. */
+    private val AL_VER = listOf(
+        "¡Oh! Tú tienes cara de valiente…",
+        "He escuchado un rumor… sobre el Apu.",
+        "¡Ah, un viajero! ¿Sabes lo que duerme en la montaña?",
+        "Shh… dicen que el Apu está despertando.",
+        "¡Uy! Me asustaste. Estaba pensando en el Apu.",
+    )
+
     private val FRASES = listOf(
         "Dicen que en lo alto de la montaña duerme un Apu…",
-        "¿Un rumor? Háblame, que es gratis.",
+        "He escuchado cosas de la montaña…",
         "El Kuraka tiene encargos nuevos, ¡apúrate!",
         "Ofrenden al Inti, que cuando despierta todo es más fácil.",
         "Mi llama se quedó cuidando el ichu.",
@@ -102,7 +111,7 @@ object Llamero {
         val cercano = nivel.players().filter { !it.isSpectator && it.distanceTo(e) < CERCA }.minByOrNull { it.distanceTo(e) }
         if (cercano != null) {
             mirar(e, Math.toDegrees(atan2(-(cercano.x - e.x), cercano.z - e.z)).toFloat())
-            if (globo == null) decir(servidor, nivel, e, "¿Un rumor del Apu? Clic derecho.", 80)
+            if (globo == null) decir(servidor, nivel, e, AL_VER.random(), 80)
         } else if (espera > 0) {
             espera--
         } else {

@@ -21,14 +21,13 @@ import net.minecraft.world.item.Items
 import java.nio.file.Files
 
 /**
- * Tambos: posadas del Qhapaq Ñan. Cada jugador arma hasta 3 tambos (maqueta del Kuraka) y, desde
- * cualquiera de ellos, viaja a otro suyo o al tambo de la plaza pagando S/ 10,000 por viaje. Desde el
+ * Tambos: posadas del Qhapaq Ñan. Cada jugador arma los tambos que quiera (maqueta del Kuraka) y, desde
+ * cualquiera de ellos, viaja a otro suyo o al tambo de la plaza pagando S/ 1,000 por viaje. Desde el
  * tambo de la plaza se viaja a los tambos propios. Solo el dueño usa sus tambos.
  * El tambo de la plaza lo registra el datapack (banco npc fijar tambo ...): su lugar queda en tambo_central.txt.
  */
 object Tambos {
-    const val PRECIO_VIAJE = 10_000L
-    const val MAXIMO = 3
+    const val PRECIO_VIAJE = 1_000L
 
     private data class Punto(val dim: String, val x: Double, val y: Double, val z: Double, val yaw: Float)
 
@@ -81,7 +80,7 @@ object Tambos {
 
     fun abrir(j: ServerPlayer, desde: Maquinas.Maquina?) {
         val servidor = j.level().server ?: return
-        val gui = SimpleGui(MenuType.GENERIC_9x3, j, false)
+        val gui = SimpleGui(MenuType.GENERIC_9x4, j, false)
         gui.setTitle(texto(if (desde == null) "Tambo de la plaza" else "Tu tambo", ChatFormatting.DARK_GREEN))
         for (i in 0 until gui.size) gui.setSlot(i, GuiUtil.relleno())
         gui.setSlot(
@@ -90,7 +89,7 @@ object Tambos {
                 listOf(
                     texto("Elige a qué tambo viajar", ChatFormatting.GRAY),
                     texto("Cada viaje: ${Formato.soles(PRECIO_VIAJE)}", ChatFormatting.YELLOW),
-                    texto("Tus tambos: ${Maquinas.tambosDe(j.uuid.toString()).size} / $MAXIMO (maqueta: el Kuraka)", ChatFormatting.GRAY),
+                    texto("Tus tambos: ${Maquinas.tambosDe(j.uuid.toString()).size} (maqueta: el Kuraka)", ChatFormatting.GRAY),
                 ),
             ),
         )
@@ -113,7 +112,7 @@ object Tambos {
                 ),
             )
         }
-        val ranuras = intArrayOf(11, 13, 15, 12, 14)
+        val ranuras = (9 until 36).toList().toIntArray()
         destinos.take(ranuras.size).forEachIndexed { i, (nombre, punto) ->
             val icono = ItemStack(if (nombre.startsWith("Tambo de la plaza")) Items.BELL else Items.LODESTONE)
             val b = GuiElementBuilder(icono).setName(texto(nombre, ChatFormatting.GREEN)).setLore(
