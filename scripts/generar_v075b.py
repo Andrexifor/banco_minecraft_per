@@ -167,73 +167,75 @@ def vizcacha():
     return modelo(a, e)
 
 
-# ---- Apu de la montaña: un nevado hecho guerrero. Cuerpo de roca con musgo y grietas, hombros que son
-#      cumbres nevadas, cabeza-montaña con máscara de oro y ojos de turquesa, abanico de plumas, capa de
-#      plumas de cóndor, unku con tocapus, Inti de oro en el pecho y su champi estrellado en la mano.
+# ---- Apu de la montaña: gólem de roca de pizarra, alto y encorvado, con brazos larguísimos que tocan el
+#      suelo, hombros de roca con picos nevados, cabeza pequeña bajo una capucha de piedra con ojos de
+#      turquesa encendidos. De Perú: tumi de oro en la frente, Inti de oro agrietado en el pecho, brazaletes
+#      de oro y turquesa y un cinturón de tocapus.
 def apu():
     a = Atlas("apu_piel", 11)
-    PI = hexc("6e6c70"); PI2 = hexc("58565b"); PI3 = hexc("8a8790"); OSC = hexc("2a2628"); GRIETA = hexc("3c3a40")
-    NIEVE = hexc("eef4f8"); NIEVE2 = hexc("cfdde8"); MUSGO = hexc("4f7a3a")
-    TURQ = hexc("2fd0c0"); ROJO = hexc("b3261e"); BLANCO = hexc("f2ece0"); MADERA = hexc("6b4426"); NEG = hexc("1e1a1c")
+    PZ = hexc("3e4148"); PZ2 = hexc("50545c"); PZ3 = hexc("6b6f78"); GRIETA = hexc("23252a"); VACIO = hexc("0c0d10")
+    NIEVE = hexc("eef4f8"); ORO_ = hexc("f4c430"); TURQ = hexc("2fd0c0"); TURQ_L = hexc("8ef3ff")
+    ROJO = hexc("b3261e"); BLANCO = hexc("f2ece0"); NEG = hexc("1e1a1c")
     e = []
-    R = 20  # grano de la roca
 
-    def c(desde, hasta, col, caras=None, grano=R):
+    def c(desde, hasta, col, caras=None, grano=22):
         e.append(caja(a, desde, hasta, col, caras, grano))
 
-    # piernas y sandalias
-    c([3, 1, 5], [7, 8, 11], PI, {"up": PI3}); c([9, 1, 5], [13, 8, 11], PI, {"up": PI3})
-    c([2.6, 0, 4.6], [7.4, 1.2, 12], OSC, grano=6); c([8.6, 0, 4.6], [13.4, 1.2, 12], OSC, grano=6)
-    c([3.4, 3.5, 10.8], [5, 5, 11.2], GRIETA); c([11, 2, 10.8], [12.4, 3, 11.2], MUSGO, grano=14)
-    # unku (falda) con banda de tocapus
-    c([2, 6, 4], [14, 10, 12], ROJO, grano=10)
-    for i in range(7):
-        col = (hexc("f4c430"), NEG, BLANCO)[i % 3]
-        c([2 + i * 12 / 7, 7, 11.9], [2 + (i + 1) * 12 / 7, 8.6, 12.3], col, grano=4)
-    # torso de roca, musgo y grietas
-    c([1, 10, 3], [15, 18, 13], PI, {"up": PI3})
-    c([1.5, 12, 12.9], [3.5, 15, 13.3], MUSGO, grano=14); c([12, 16, 12.9], [14.6, 17.6, 13.3], MUSGO, grano=14)
-    c([12.5, 11, 12.9], [13.2, 14.5, 13.2], GRIETA); c([0.8, 15, 6], [1.1, 17, 9], GRIETA)
-    # Inti de oro en el pecho
-    c([5, 11.5, 13], [11, 17, 13.6], hexc("f4c430"), grano=6)
-    c([6.5, 13, 13.6], [9.5, 15.5, 14], TURQ, grano=4)
-    for (x0, y0, x1, y1) in ((7.5, 17, 8.5, 18), (7.5, 10.5, 8.5, 11.5), (4, 13.8, 5, 14.8), (11, 13.8, 12, 14.8)):
-        c([x0, y0, 13], [x1, y1, 13.5], ORO_L, grano=4)
-    # capa de plumas de cóndor en la espalda
-    c([1.5, 6, 1.8], [14.5, 18, 3], NEG, grano=8)
-    c([1.5, 11, 1.6], [14.5, 12.5, 1.8], BLANCO, grano=4)
-    # hombros: cumbres nevadas
-    for x0, x1 in ((-4, 3), (13, 20)):
-        c([x0, 15, 4], [x1, 19, 12], PI2)
-        c([x0 + 0.5, 19, 4.5], [x1 - 0.5, 20.5, 11.5], NIEVE, grano=5)
-        c([x0 + 1.5, 20.5, 5.5], [x1 - 1.5, 22, 10.5], NIEVE2, grano=5)
-        c([x0 + 2.6, 22, 7], [x1 - 2.6, 23.2, 9], NIEVE, grano=4)
-    # brazos: el izquierdo cuelga con el puño cerrado; el derecho sostiene el champi
-    c([-3, 8, 6], [2, 15, 10], PI); c([-3.5, 5, 5.5], [2.5, 8.5, 10.5], PI2)
-    c([14, 9, 6], [19, 15, 10], PI); c([13.6, 8, 9], [19.4, 11.5, 13.5], PI2)
-    # champi: mango de madera y cabeza estrellada de oro con puntas
-    c([15.8, 1, 10.8], [17.2, 21, 12.2], MADERA, grano=8)
-    c([14.5, 20, 9.5], [18.5, 24, 13.5], hexc("f4c430"), grano=6)
-    for (x0, y0, z0, x1, y1, z1) in ((13.5, 21.4, 11, 14.5, 22.6, 12), (18.5, 21.4, 11, 19.5, 22.6, 12),
-                                     (16, 24, 11, 17, 25.2, 12), (16, 21.4, 13.5, 17, 22.6, 14.6),
-                                     (16, 21.4, 8.4, 17, 22.6, 9.5)):
-        c([x0, y0, z0], [x1, y1, z1], ORO_L, grano=4)
-    # cabeza-montaña con máscara de oro
-    c([4, 18, 4], [12, 25, 11], PI3)
-    c([4.4, 18.4, 11], [11.6, 24.2, 11.6], hexc("f4c430"), grano=6)
-    c([5.4, 21.4, 11.6], [7.4, 22.6, 12], TURQ, grano=3); c([8.6, 21.4, 11.6], [10.6, 22.6, 12], TURQ, grano=3)
-    c([7.4, 19.6, 11.6], [8.6, 22.4, 12.1], ORO_L, grano=4)              # nariz
-    c([6.2, 18.8, 11.6], [9.8, 19.4, 12], NEG, grano=3)                   # boca
-    c([3.4, 20, 7], [4, 23, 9], hexc("f4c430"), grano=4); c([12, 20, 7], [12.6, 23, 9], hexc("f4c430"), grano=4)   # orejeras
-    # corona de nieve en forma de cumbre
-    c([3.8, 25, 3.8], [12.2, 26.2, 11.2], NIEVE, grano=5)
-    c([5.5, 26.2, 5.5], [10.5, 27.6, 9.5], NIEVE2, grano=5)
-    c([7, 27.6, 6.8], [9, 28.8, 8.4], NIEVE, grano=4)
-    # abanico de plumas detrás de la cabeza
-    for i, col in enumerate((ROJO, hexc("f4c430"), TURQ, BLANCO, TURQ, hexc("f4c430"), ROJO)):
-        x = 2.5 + i * 1.6
-        alto = 30.5 - abs(i - 3) * 1.4
-        c([x, 23, 3.2], [x + 1.2, alto, 4], col, grano=6)
+    # piernas largas y pies de roca
+    for x0 in (4.5, 9.5):
+        c([x0, 1.5, 6], [x0 + 3, 13, 10], PZ, {"east": PZ2, "west": PZ2})
+        c([x0 - 1, 0, 5], [x0 + 4, 2, 11.5], PZ2)
+        c([x0 + 0.4, 6, 9.9], [x0 + 1.2, 9, 10.2], GRIETA)
+    # cadera y cinturón de tocapus
+    c([4, 12, 5], [12, 15.5, 11], PZ2)
+    for i in range(6):
+        c([4 + i * 8 / 6, 13.4, 10.95], [4 + (i + 1) * 8 / 6, 14.8, 11.3], (ORO_, NEG, BLANCO)[i % 3], grano=4)
+    # torso que se ensancha hacia los hombros
+    c([3, 15, 4], [13, 21.5, 12], PZ, {"up": PZ3})
+    c([1, 21, 3], [15, 26, 13], PZ, {"up": PZ3})
+    c([3.5, 16, 11.9], [4.2, 20, 12.2], GRIETA); c([12, 22, 12.9], [12.7, 25, 13.2], GRIETA)
+    # Inti de oro agrietado en el pecho
+    c([5.5, 18, 12.6], [10.5, 23, 13.2], ORO_, grano=8)
+    c([7, 19.5, 13.2], [9, 21.5, 13.5], TURQ, grano=4)
+    c([7.8, 18, 13.2], [8.2, 19.5, 13.4], GRIETA, grano=3)
+    for (x0, y0, x1, y1) in ((7.6, 23, 8.4, 24), (7.6, 17, 8.4, 18), (4.5, 20.1, 5.5, 20.9), (10.5, 20.1, 11.5, 20.9)):
+        c([x0, y0, 12.6], [x1, y1, 13], ORO_L, grano=4)
+    # cabeza hundida entre los hombros, bajo una capucha de piedra
+    c([5.5, 24, 6], [10.5, 29, 12], PZ2)
+    c([5, 28, 5.5], [11, 30.2, 12.8], PZ, {"up": PZ3})
+    c([4.8, 25, 11], [5.6, 29, 12.8], PZ); c([10.4, 25, 11], [11.2, 29, 12.8], PZ)
+    c([6.2, 24.6, 11.9], [9.8, 28, 12.2], VACIO, grano=2)                   # rostro en sombra
+    c([6.6, 26.2, 12.2], [7.6, 27, 12.5], TURQ_L, grano=2)                  # ojos encendidos
+    c([8.4, 26.2, 12.2], [9.4, 27, 12.5], TURQ_L, grano=2)
+    c([7.2, 28.4, 12.8], [8.8, 31, 13.1], ORO_, grano=4)                    # tumi de oro en la frente
+    c([6.6, 30.4, 12.8], [9.4, 31.2, 13.1], ORO_L, grano=4)
+    # hombros de roca enormes, con picos (algunos nevados)
+    for lado, x0, x1 in ((-1, -4, 4), (1, 12, 20)):
+        c([x0, 20, 3], [x1, 27, 13], PZ2, {"up": PZ3})
+        picos = ((0.5, 27, 4, 1.6, 32, 5.6), (3, 27, 7.5, 4.4, 31, 9), (5.6, 27, 10.4, 7, 30, 12),
+                 (1.6, 27, 9.6, 2.8, 29.5, 11), (5, 27, 4.2, 6.2, 29.4, 5.4))
+        for (px0, py0, pz0, px1, py1, pz1) in picos:
+            xa, xb = (x0 + px0, x0 + px1) if lado > 0 else (x1 - px1, x1 - px0)
+            c([xa, py0, pz0], [xb, py1, pz1], PZ3)
+            c([xa - 0.1, py1 - 0.8, pz0 - 0.1], [xb + 0.1, py1, pz1 + 0.1], NIEVE, grano=4)
+        # picos hacia afuera
+        xa, xb = (x0 - 3, x0) if lado < 0 else (x1, x1 + 3)
+        c([xa, 24, 6], [xb, 25.4, 7.4], PZ3); c([xa + (0.6 if lado < 0 else 0), 22, 9], [xb - (0 if lado < 0 else 0.6), 23.2, 10.2], PZ3)
+    # picos de la espalda
+    for (y0, y1, z0) in ((18, 25, 1.4), (21, 29, 1.0), (24, 31.5, 1.8)):
+        c([7, y0, z0], [9, y1, z0 + 1.8], PZ3)
+    c([7.1, 30.6, 1.9], [8.9, 31.5, 3.5], NIEVE, grano=4)
+    # brazos larguísimos: los puños descansan en el suelo
+    for x0 in (-2.5, 14.5):
+        c([x0, 12, 6], [x0 + 4, 21, 10], PZ)                                 # brazo
+        c([x0 - 0.6, 3, 5.4], [x0 + 4.6, 12.5, 10.6], PZ2)                   # antebrazo
+        c([x0 - 1, 0, 4.6], [x0 + 5, 3.2, 11.4], PZ, {"up": PZ3})            # puño
+        c([x0 - 0.9, 9.4, 5.2], [x0 + 4.9, 11, 10.8], ORO_, grano=6)        # brazalete de oro
+        c([x0 - 0.8, 11, 5.3], [x0 + 4.8, 11.6, 10.7], TURQ, grano=4)       # y turquesa
+        c([x0 + 1, 5, 10.5], [x0 + 1.6, 8, 10.8], GRIETA)
+    # fragmentos de roca que flotan alrededor
+    for (x, y, z, t) in ((-6, 14, 3, 1.4), (21, 17, 12, 1.2), (-5, 6, 12, 1.0), (22, 8, 3, 1.3), (8, 2, 15, 0.9)):
+        c([x, y, z], [x + t, y + t, z + t], PZ2)
     a.guardar()
     return modelo(a, e)
 

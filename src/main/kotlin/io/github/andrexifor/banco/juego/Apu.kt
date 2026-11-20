@@ -41,7 +41,7 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 /**
- * Apu de la montaña: jefe del servidor. Su santuario se genera UNA sola vez, en la cima más alta que el
+ * Apu de la montaña: jefe del servidor. Su templo (explanada con andenes encerrada por montañas) se genera UNA sola vez, en la cima más alta que el
  * mod encuentra a 1500–2000 bloques del spawn (apu.json guarda dónde). El Llamero viajero de la plaza
  * cuenta gratis el rumor de dónde está.
  *
@@ -63,6 +63,13 @@ object Apu {
     private const val ESPERA_MS = 30L * 60 * 1000
     private const val RADIO_DESPERTAR = 32.0
     private const val RADIO_PELEA = 64.0
+    /** Radio de la explanada y del anillo de montañas del templo. */
+    private const val R_ARENA = 22
+    private const val R_MONTE = 34
+    /** Altura del tope del altar sobre el piso (ahí duerme la estatua y aparece el jefe). */
+    private const val ALTAR = 2.0
+    /** Versión del templo: si el guardado es más viejo, se vuelve a construir en el mismo lugar. */
+    private const val VERSION_TEMPLO = 2
 
     const val CHAMPI = "minecraft:netherite_axe[item_model=\"banco_minecraft_per:champi_apu\"," +
         "custom_name={text:\"Champi del Apu\",color:\"aqua\",bold:true,italic:false}," +
@@ -73,6 +80,7 @@ object Apu {
 
     data class Datos(
         var generado: Boolean = false,
+        var version: Int = 1,
         var dim: String = "minecraft:overworld",
         var x: Int = 0, var y: Int = 0, var z: Int = 0,
         var proximo: Long = 0,
@@ -127,12 +135,19 @@ object Apu {
         cargar()
         ServerLifecycleEvents.SERVER_STARTED.register { servidor ->
             // la v0.7.5 inicial lo dejó en el fondo del mundo (no generaba los chunks): se vuelve a buscar
-            if (!datos.generado || datos.y <= servidor.overworld().minY + 5) {
-                try {
+            try {
+                if (!datos.generado || datos.y <= servidor.overworld().minY + 5) {
                     generar(servidor)
-                } catch (e: Exception) {
-                    BancoMinecraftPer.LOGGER.error("No se pudo generar el santuario del Apu", e)
+                } else if (datos.version < VERSION_TEMPLO) {
+                    // el santuario pequeño de antes se cambia por el templo grande, en el mismo lugar
+                    nivel(servidor)?.let { construir(it, centro()) }
+                    datos.version = VERSION_TEMPLO
+                    guardar()
+                    estatua(servidor, true)
+                    BancoMinecraftPer.LOGGER.info("Templo del Apu reconstruido en {} {} {}", datos.x, datos.y, datos.z)
                 }
+            } catch (e: Exception) {
+                BancoMinecraftPer.LOGGER.error("No se pudo generar el templo del Apu", e)
             }
         }
         ServerTickEvents.END_SERVER_TICK.register { servidor -> tick(servidor) }
@@ -147,9 +162,9 @@ object Apu {
         PlayerBlockBreakEvents.BEFORE.register { nivel, jugador, pos, _, _ ->
             if (!datos.generado || nivel.dimension().identifier().toString() != datos.dim) return@register true
             val c = centro()
-            val dentro = hypot((pos.x - c.x).toDouble(), (pos.z - c.z).toDouble()) <= 10.5 && pos.y in c.y - 13..c.y + 14
+            val dentro = hypot((pos.x - c.x).toDouble(), (pos.z - c.z).toDouble()) <= R_MONTE + 0.5 && pos.y in c.y - 30..c.y + 44
             if (dentro && jugador is ServerPlayer && !jugador.isCreative) {
-                jugador.sendSystemMessage(Component.literal("El santuario del Apu no se puede romper.").withStyle(ChatFormatting.RED))
+                jugador.sendSystemMessage(Component.literal("El templo del Apu no se puede romper.").withStyle(ChatFormatting.RED))
                 return@register false
             }
             true
@@ -182,6 +197,7 @@ object Apu {
         val c = mejor ?: return
         construir(nivel, c)
         datos.generado = true
+        datos.version = VERSION_TEMPLO
         datos.dim = nivel.dimension().identifier().toString()
         datos.x = c.x; datos.y = c.y; datos.z = c.z
         guardar()
@@ -189,45 +205,130 @@ object Apu {
         BancoMinecraftPer.LOGGER.info("Santuario del Apu generado en {} {} {}", c.x, c.y, c.z)
     }
 
+    /**
+     * Templo del Apu (versión 2): una explanada circular de 22 bloques de radio con andenes, encerrada por un
+     * anillo de montañas de roca con cumbres nevadas, una puerta inca trapezoidal al sur con escalinata hacia
+     * afuera, ocho pilares con anillos de oro y braseros de fuego de almas, y el altar escalonado al centro.
+     * [c] es el centro del piso (los jugadores pisan c.y).
+     */
     private fun construir(nivel: ServerLevel, c: BlockPos) {
         val azar = Random(c.x * 31L + c.z)
         fun pon(p: BlockPos, b: net.minecraft.world.level.block.state.BlockState) { nivel.setBlock(p, b, 2) }
-        for (dx in -10..10) for (dz in -10..10) {
+        fun ponR(dx: Int, dy: Int, dz: Int, b: net.minecraft.world.level.block.Block) = pon(c.offset(dx, dy, dz), b.defaultBlockState())
+        val rocas = listOf(Blocks.STONE, Blocks.ANDESITE, Blocks.TUFF, Blocks.STONE, Blocks.COBBLESTONE, Blocks.DEEPSLATE)
+        // altura de las montañas según el ángulo: varias cumbres irregulares
+        val fases = DoubleArray(4) { azar.nextDouble() * Math.PI * 2 }
+        fun altura(ang: Double) = (14 + 6 * sin(ang * 3 + fases[0]) + 4 * sin(ang * 5 + fases[1]) + 3 * sin(ang * 9 + fases[2]) +
+            2 * sin(ang * 14 + fases[3])).coerceIn(8.0, 28.0)
+        for (dx in -R_MONTE..R_MONTE) for (dz in -R_MONTE..R_MONTE) {
             val r = hypot(dx.toDouble(), dz.toDouble())
-            if (r > 10.5) continue
-            // aire encima
-            for (dy in 0..15) pon(c.offset(dx, dy, dz), Blocks.AIR.defaultBlockState())
-            if (r > 9.5) continue
-            // cimientos hasta tocar suelo firme
-            for (dy in 2..14) {
+            if (r > R_MONTE + 0.5) continue
+            // aire encima y cimientos de piedra hasta tocar suelo firme
+            for (dy in 0..42) ponR(dx, dy, dz, Blocks.AIR)
+            for (dy in 2..28) {
                 val p = c.offset(dx, -dy, dz)
-                val s = nivel.getBlockState(p)
-                if (!s.canBeReplaced() && s.fluidState.isEmpty && !s.isAir) break
-                pon(p, Blocks.STONE.defaultBlockState())
+                val st = nivel.getBlockState(p)
+                if (!st.canBeReplaced() && st.fluidState.isEmpty && !st.isAir) break
+                pon(p, rocas[azar.nextInt(rocas.size)].defaultBlockState())
             }
-            // piso
-            val piso = when {
-                r <= 2.5 -> Blocks.CHISELED_STONE_BRICKS
-                r >= 7.5 -> if (azar.nextInt(3) == 0) Blocks.MOSSY_STONE_BRICKS else Blocks.STONE_BRICKS
-                (dx == 0 || dz == 0) -> Blocks.POLISHED_DIORITE
-                else -> if (azar.nextInt(4) == 0) Blocks.CRACKED_STONE_BRICKS else Blocks.POLISHED_ANDESITE
+            val puerta = dz > 0 && kotlin.math.abs(dx) <= 3
+            when {
+                r <= R_ARENA + 0.5 -> {
+                    // piso de la explanada
+                    val piso = when {
+                        r <= 5.5 -> Blocks.POLISHED_BLACKSTONE_BRICKS
+                        r in 11.5..12.5 -> Blocks.GOLD_BLOCK
+                        r in 17.5..18.5 -> Blocks.OXIDIZED_COPPER
+                        dx == 0 || dz == 0 -> Blocks.POLISHED_DIORITE
+                        else -> if (azar.nextInt(5) == 0) Blocks.CRACKED_STONE_BRICKS else if (azar.nextInt(4) == 0) Blocks.MOSSY_STONE_BRICKS else Blocks.STONE_BRICKS
+                    }
+                    ponR(dx, -1, dz, piso)
+                    if (r > 6 && azar.nextInt(9) == 0) ponR(dx, 0, dz, Blocks.SNOW)
+                }
+                puerta -> ponR(dx, -1, dz, if (kotlin.math.abs(dx) == 3) Blocks.CHISELED_STONE_BRICKS else Blocks.POLISHED_ANDESITE)
+                r <= R_ARENA + 3.5 -> {
+                    // andenes: dos escalones de muro de piedra con musgo arriba
+                    val alto = if (r <= R_ARENA + 2) 1 else 2
+                    for (dy in -1 until alto) ponR(dx, dy, dz, Blocks.STONE_BRICKS)
+                    ponR(dx, alto, dz, Blocks.MOSS_BLOCK)
+                    if (azar.nextInt(6) == 0) ponR(dx, alto + 1, dz, Blocks.SHORT_GRASS)
+                }
+                else -> {
+                    // montañas: más altas cuanto más afuera, con roca variada y nieve en la cumbre
+                    val ang = kotlin.math.atan2(dz.toDouble(), dx.toDouble())
+                    val subida = ((r - (R_ARENA + 3.5)) / (R_MONTE - R_ARENA - 3.5)).coerceIn(0.0, 1.0)
+                    val h = (4 + (altura(ang) - 4) * (0.45 + 0.55 * kotlin.math.sqrt(subida)) + azar.nextInt(3) - 1).toInt()
+                    for (dy in -1..h) {
+                        val b = when {
+                            dy >= h - 1 && h > 12 -> Blocks.SNOW_BLOCK
+                            else -> rocas[azar.nextInt(rocas.size)]
+                        }
+                        ponR(dx, dy, dz, b)
+                    }
+                }
             }
-            pon(c.offset(dx, -1, dz), piso.defaultBlockState())
-            if (r in 3.0..7.0 && azar.nextInt(5) == 0) pon(c.offset(dx, 0, dz), Blocks.SNOW.defaultBlockState())
         }
-        // ocho pilares con nieve y faroles de almas
+        // puerta inca trapezoidal en las montañas del sur (de R_ARENA + 3 a R_MONTE)
+        for (dz in R_ARENA + 3..R_MONTE) {
+            for (dx in -3..3) for (dy in 0..9) {
+                val ancho = if (dy <= 2) 2 else if (dy <= 5) 1 else 0  // se angosta hacia arriba
+                val hueco = kotlin.math.abs(dx) <= ancho && dy <= 7
+                ponR(dx, dy, dz, if (hueco) Blocks.AIR else if (dy == 8 && kotlin.math.abs(dx) <= 2) Blocks.GOLD_BLOCK else Blocks.CHISELED_STONE_BRICKS)
+            }
+        }
+        // escalinata hacia afuera hasta el terreno
+        var y = -1
+        for (dz in R_MONTE + 1..R_MONTE + 45) {
+            val suelo = (-3..3).maxOf { dx -> nivel.getChunk((c.x + dx) shr 4, (c.z + dz) shr 4)
+                .getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (c.x + dx) and 15, (c.z + dz) and 15) + 1 - c.y }
+            if (suelo >= y + 1) break
+            y--
+            for (dx in -3..3) {
+                for (dy in y + 1..y + 4) ponR(dx, dy, dz, Blocks.AIR)
+                val escalon = if (kotlin.math.abs(dx) == 3) Blocks.STONE_BRICK_WALL.defaultBlockState()
+                else Blocks.STONE_BRICK_STAIRS.defaultBlockState().setValue(net.minecraft.world.level.block.StairBlock.FACING, net.minecraft.core.Direction.NORTH)
+                pon(c.offset(dx, y, dz), escalon)
+                for (dy in y - 1 downTo y - 30) {
+                    val p = c.offset(dx, dy, dz)
+                    val st = nivel.getBlockState(p)
+                    if (!st.canBeReplaced() && st.fluidState.isEmpty && !st.isAir) break
+                    pon(p, Blocks.STONE_BRICKS.defaultBlockState())
+                }
+            }
+        }
+        // ocho pilares con anillos de oro, nieve y braseros
         for (i in 0 until 8) {
-            val a = Math.toRadians(i * 45.0)
-            val px = (cos(a) * 8).toInt()
-            val pz = (sin(a) * 8).toInt()
-            for (dy in 0..4) pon(c.offset(px, dy, pz), Blocks.CHISELED_STONE_BRICKS.defaultBlockState())
-            pon(c.offset(px, 5, pz), Blocks.SNOW_BLOCK.defaultBlockState())
-            pon(c.offset(px, 6, pz), Blocks.SOUL_LANTERN.defaultBlockState())
+            val a = Math.toRadians(i * 45.0 + 22.5)
+            val px = (cos(a) * 16).toInt()
+            val pz = (sin(a) * 16).toInt()
+            for (ox in -1..1) for (oz in -1..1) {
+                for (dy in 0..12) {
+                    val b = when (dy) { 4, 9 -> Blocks.GOLD_BLOCK; else -> if (ox == 0 && oz == 0) Blocks.STONE_BRICKS else Blocks.CHISELED_STONE_BRICKS }
+                    ponR(px + ox, dy, pz + oz, b)
+                }
+                ponR(px + ox, 13, pz + oz, Blocks.SNOW_BLOCK)
+            }
+            ponR(px, 14, pz, Blocks.SOUL_CAMPFIRE)
+            for ((ox, oz) in listOf(2 to 0, -2 to 0, 0 to 2, 0 to -2)) ponR(px + ox, 11, pz + oz, Blocks.SOUL_LANTERN)
         }
-        // altar
-        for (dx in -1..1) for (dz in -1..1) pon(c.offset(dx, 0, dz), Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState())
-        pon(c.offset(0, 0, 0), Blocks.GOLD_BLOCK.defaultBlockState())
-        for ((dx, dz) in listOf(2 to 0, -2 to 0, 0 to 2, 0 to -2)) pon(c.offset(dx, 0, dz), Blocks.SOUL_CAMPFIRE.defaultBlockState())
+        // altar escalonado: plataforma de 5 de radio y otra de 3 encima, con escaleras y oro
+        for (dx in -5..5) for (dz in -5..5) {
+            val r = hypot(dx.toDouble(), dz.toDouble())
+            if (r > 5.5) continue
+            ponR(dx, 0, dz, if (r > 4.6) Blocks.GOLD_BLOCK else Blocks.POLISHED_BLACKSTONE_BRICKS)
+            if (r <= 3.5) ponR(dx, 1, dz, if (r <= 1) Blocks.GOLD_BLOCK else Blocks.CHISELED_POLISHED_BLACKSTONE)
+        }
+        for (d in listOf(net.minecraft.core.Direction.NORTH, net.minecraft.core.Direction.SOUTH, net.minecraft.core.Direction.EAST, net.minecraft.core.Direction.WEST)) {
+            val st = Blocks.POLISHED_BLACKSTONE_BRICK_STAIRS.defaultBlockState().setValue(net.minecraft.world.level.block.StairBlock.FACING, d.opposite)
+            pon(c.relative(d, 6), st)
+            pon(c.relative(d, 4).above(), st)
+        }
+        for ((dx, dz) in listOf(5 to 5, 5 to -5, -5 to 5, -5 to -5)) ponR(dx, 0, dz, Blocks.SOUL_CAMPFIRE)
+        // luz: faroles de alma escondidos en el piso para que no aparezcan mobs en la explanada
+        for (dx in -R_ARENA..R_ARENA step 6) for (dz in -R_ARENA..R_ARENA step 6) {
+            val r = hypot(dx.toDouble(), dz.toDouble())
+            if (r in 6.5..R_ARENA - 1.0) ponR(dx, -1, dz, Blocks.SEA_LANTERN)
+        }
     }
 
     // ---------- estatua (mientras duerme) ----------
@@ -237,8 +338,8 @@ object Apu {
         if (!nivel.isLoaded(c)) return
         nivel.getEntitiesOfClass(Display::class.java, AABB(c).inflate(6.0)) { "apu_estatua" in it.entityTags() }.forEach { it.discard() }
         if (!poner) return
-        comando(servidor, nivel, Vec3(c.x + 0.5, c.y + 1.0, c.z + 0.5),
-            "summon minecraft:item_display ${c.x + 0.5} ${c.y + 1.0} ${c.z + 0.5} {Tags:[\"apu_estatua\"],Rotation:[0f,0f]," +
+        comando(servidor, nivel, Vec3(c.x + 0.5, c.y + ALTAR, c.z + 0.5),
+            "summon minecraft:item_display ${c.x + 0.5} ${c.y + ALTAR} ${c.z + 0.5} {Tags:[\"apu_estatua\"],Rotation:[0f,0f]," +
                 "item:{id:\"minecraft:stone\",count:1,components:{\"minecraft:item_model\":\"banco_minecraft_per:apu\"}},item_display:\"fixed\"," +
                 "view_range:4f,transformation:{left_rotation:[0f,1f,0f,0f],right_rotation:[0f,0f,0f,1f],translation:[0f,1.5f,0f],scale:[3f,3f,3f]}}")
     }
@@ -289,7 +390,7 @@ object Apu {
         }
         soledad = 0
         // no se aleja de su santuario
-        if (boss.position().distanceTo(centroV) > 22) boss.teleportTo(centroV.x, centroV.y + 1, centroV.z)
+        if (boss.position().distanceTo(centroV) > R_ARENA) boss.teleportTo(centroV.x, centroV.y + ALTAR, centroV.z)
         if (!fase2 && boss.health < boss.maxHealth / 2) entrarFase2(nivel, boss, cerca)
         val peleando = cerca.filter { !it.isCreative }
         if (peleando.isEmpty()) return
@@ -303,11 +404,11 @@ object Apu {
     private fun despertar(servidor: MinecraftServer, nivel: ServerLevel, c: BlockPos) {
         estatua(servidor, false)
         huerfanos(nivel, c)
-        val p = Vec3(c.x + 0.5, c.y + 1.0, c.z + 0.5)
+        val p = Vec3(c.x + 0.5, c.y + ALTAR, c.z + 0.5)
         comando(servidor, nivel, p,
             "summon minecraft:wither_skeleton ${p.x} ${p.y} ${p.z} {Tags:[\"apu_jefe\"],PersistenceRequired:1b," +
                 "CustomName:{text:\"Apu de la montaña\",color:\"gold\"},DeathLootTable:\"minecraft:empty\",Health:${VIDA}f," +
-                "attributes:[{id:\"minecraft:max_health\",base:${VIDA}d},{id:\"minecraft:scale\",base:3d}," +
+                "attributes:[{id:\"minecraft:max_health\",base:${VIDA}d},{id:\"minecraft:scale\",base:3.5d}," +
                 "{id:\"minecraft:attack_damage\",base:14d},{id:\"minecraft:movement_speed\",base:0.3d}," +
                 "{id:\"minecraft:knockback_resistance\",base:1d},{id:\"minecraft:follow_range\",base:48d},{id:\"minecraft:armor\",base:10d}]," +
                 "active_effects:[{id:\"minecraft:invisibility\",duration:-1,amplifier:0b,show_particles:0b,show_icon:0b}]}")
