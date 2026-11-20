@@ -357,6 +357,7 @@ object Apu {
         val c = centro()
         val centroV = Vec3(c.x + 0.5, c.y.toDouble(), c.z + 0.5)
         moverRocas(nivel)
+        if (servidor.tickCount % 10 == 0 && nivel.isLoaded(c)) sinMonstruos(nivel, c)
         val boss = jefeVivo(nivel)
         if (boss != null) {
             // el modelo sigue al cuerpo
@@ -565,6 +566,18 @@ object Apu {
         rocas.clear()
         jefe = null; modelo = null; dano.clear(); fase2 = false; soledad = 0
         barra.removeAllPlayers()
+    }
+
+    /**
+     * En el templo no aparecen monstruos (las montañas y los andenes son oscuros y los mobs caían a la
+     * explanada): cualquier monstruo dentro del anillo de montañas se borra, salvo el Apu y sus cóndores.
+     */
+    private fun sinMonstruos(nivel: ServerLevel, c: BlockPos) {
+        val caja = AABB(c).inflate(R_MONTE + 2.0, 48.0, R_MONTE + 2.0)
+        nivel.getEntitiesOfClass(net.minecraft.world.entity.Mob::class.java, caja) {
+            it is net.minecraft.world.entity.monster.Enemy && it.entityTags().none { t -> t.startsWith("apu_") } &&
+                hypot(it.x - (c.x + 0.5), it.z - (c.z + 0.5)) <= R_MONTE + 1.5
+        }.forEach { it.discard() }
     }
 
     /** Restos de una pelea anterior (por ejemplo, tras reiniciar el servidor). */
