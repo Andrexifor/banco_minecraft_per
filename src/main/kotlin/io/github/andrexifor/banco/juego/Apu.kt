@@ -238,7 +238,7 @@ object Apu {
                     val piso = when {
                         r <= 5.5 -> Blocks.POLISHED_BLACKSTONE_BRICKS
                         r in 11.5..12.5 -> Blocks.GOLD_BLOCK
-                        r in 17.5..18.5 -> Blocks.OXIDIZED_COPPER
+                        r in 17.5..18.5 -> Blocks.PRISMARINE
                         dx == 0 || dz == 0 -> Blocks.POLISHED_DIORITE
                         else -> if (azar.nextInt(5) == 0) Blocks.CRACKED_STONE_BRICKS else if (azar.nextInt(4) == 0) Blocks.MOSSY_STONE_BRICKS else Blocks.STONE_BRICKS
                     }
