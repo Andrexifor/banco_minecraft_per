@@ -22,12 +22,12 @@ import java.nio.file.Files
 
 /**
  * Tambos: posadas del Qhapaq Ñan. Cada jugador arma hasta 3 tambos (maqueta del Kuraka) y, desde
- * cualquiera de ellos, viaja a otro suyo o al tambo de la plaza pagando S/ 100,000 por viaje. Desde el
+ * cualquiera de ellos, viaja a otro suyo o al tambo de la plaza pagando S/ 10,000 por viaje. Desde el
  * tambo de la plaza se viaja a los tambos propios. Solo el dueño usa sus tambos.
  * El tambo de la plaza lo registra el datapack (banco npc fijar tambo ...): su lugar queda en tambo_central.txt.
  */
 object Tambos {
-    const val PRECIO_VIAJE = 100_000L
+    const val PRECIO_VIAJE = 10_000L
     const val MAXIMO = 3
 
     private data class Punto(val dim: String, val x: Double, val y: Double, val z: Double, val yaw: Float)

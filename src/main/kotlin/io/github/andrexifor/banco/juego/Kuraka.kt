@@ -44,7 +44,7 @@ object Kuraka {
     const val MAQUETA_TAMBO = "minecraft:paper[item_model=\"banco_minecraft_per:maqueta_tambo\",max_stack_size=1," +
         "custom_name={text:\"Maqueta: Tambo\",color:\"gold\",italic:false}," +
         "lore=[{text:\"Posada del Qhapaq Ñan: viaja entre tus tambos\",color:\"gray\",italic:false}," +
-        "{text:\"y al tambo de la plaza (S/ 100,000 por viaje)\",color:\"gray\",italic:false}," +
+        "{text:\"y al tambo de la plaza (S/ 10,000 por viaje)\",color:\"gray\",italic:false}," +
         "{text:\"Máximo 3 tambos por jugador\",color:\"gray\",italic:false}," +
         "{text:\"Clic derecho sobre el suelo: se arma (3x3)\",color:\"gray\",italic:false}," +
         "{text:\"Shift + clic derecho al centro, mano vacía: se desarma\",color:\"gray\",italic:false}]," +
