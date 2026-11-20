@@ -178,8 +178,9 @@ object Condor {
             d.snapTo(nueva.x, nueva.y, nueva.z, yaw, 0f)
 
             if (presa != null && e.espera == 0 && nueva.distanceTo(destino) < 1.6) {
-                presa.hurtServer(nivel, j.damageSources().playerAttack(j), DANO)
-                presa.knockback(0.5, nueva.x - presa.x, nueva.z - presa.z)
+                val golpe = j.damageSources().playerAttack(j)
+                presa.hurtServer(nivel, golpe, DANO)
+                presa.knockback(0.5, nueva.x - presa.x, nueva.z - presa.z, golpe, DANO)
                 nivel.playSound(null, presa.blockPosition(), SoundEvents.PHANTOM_BITE, SoundSource.NEUTRAL, 0.8f, 0.8f)
                 e.espera = 20
                 e.subir = 12 // después del picotazo vuelve a subir antes de la siguiente picada
