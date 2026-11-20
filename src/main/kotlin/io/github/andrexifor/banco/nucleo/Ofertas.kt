@@ -18,14 +18,19 @@ data class Oferta(
 )
 
 data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) {
-    fun normalizado(defecto: () -> CatalogoOfertas): CatalogoOfertas {
+    /**
+     * Limpia lo leído del JSON. Con [agregarNuevas], las ofertas nuevas de esta versión que el archivo aún no
+     * tiene se agregan al final; las de [renovar] toman el ítem y la descripción nuevos (el precio se respeta).
+     */
+    fun normalizado(defecto: () -> CatalogoOfertas, renovar: Set<String> = emptySet(), agregarNuevas: Boolean = false): CatalogoOfertas {
         val lista = ofertas ?: return defecto()
-        return CatalogoOfertas(
-            lista.filter { it.id.isNotBlank() && it.item.isNotBlank() && it.precio > 0 }
-                .map { it.copy(cantidad = it.cantidad.coerceIn(1, 64)) }
-                .distinctBy { it.id }
-                .toMutableList(),
-        )
+        val base = if (renovar.isEmpty() && !agregarNuevas) emptyList() else defecto().ofertas.orEmpty()
+        val propias = lista.filter { it.id.isNotBlank() && it.item.isNotBlank() && it.precio > 0 }
+            .map { it.copy(cantidad = it.cantidad.coerceIn(1, 64)) }
+            .distinctBy { it.id }
+            .map { o -> if (o.id in renovar) base.firstOrNull { it.id == o.id }?.let { d -> o.copy(item = d.item, descripcion = d.descripcion) } ?: o else o }
+        val faltan = if (agregarNuevas) base.filter { d -> propias.none { it.id == d.id } } else emptyList()
+        return CatalogoOfertas((propias + faltan).toMutableList())
     }
 
     fun buscar(id: String): Oferta? = ofertas.orEmpty().firstOrNull { it.id == id }
@@ -363,11 +368,15 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
                     "Cantera más rápida: 10 -> 7 -> 5 -> 3 -> 1 s"),
                     precio = 750_000, descripcion = "Acelera la cantera un nivel"),
                 Oferta("veta", "Veta de la montaña", mejora("veta", "veta_montana", "Veta de la montaña",
-                    "Vetas I: carbón · II: hierro, cobre y tumbaga", "III: sin carbón y más tumbaga"),
+                    "Vetas I: cobre · II: cobre, hierro, oro y tumbaga", "III: más hierro, oro y tumbaga"),
                     precio = 2_500_000, descripcion = "Sube las vetas de la cantera un nivel"),
                 Oferta("brazo", "Brazo de la cantera", mejora("brazo", "brazo_cantera", "Brazo de la cantera",
                     "La cantera pica sola cada 5 s", "y lo deja en un cofre pegado a ella"),
                     precio = 30_000_000, descripcion = "Cantera automática"),
+                Oferta("quipu", "Quipu", especial("paper", "quipu", "quipu", "1b", "Quipu", "gold", 16,
+                    "Une una cantera con una Huayrachina (con filtro)", "o una Fuente del Misti con un Tanque",
+                    "Clic derecho al origen y luego al destino", "Llega hasta 64 bloques"),
+                    precio = 400_000, descripcion = "Une dos máquinas"),
                 Oferta("fuente", "Fuente del Misti", maqueta("fuente", "Maqueta: Fuente del Misti",
                     "Un balde de lava cada 5 minutos", "Con un tanque cerca, la lava va al tanque"),
                     precio = 6_000_000, descripcion = "Lava cada 5 minutos"),
@@ -381,8 +390,11 @@ data class CatalogoOfertas(var ofertas: MutableList<Oferta>? = mutableListOf()) 
                     "Agranda un tanque: 16 -> 32 -> 48 -> 80", "-> 160 -> 400 -> 800 baldes"),
                     precio = 3_000_000, descripcion = "Agranda el tanque un tamaño"),
                 Oferta("horno", "Huayrachina", maqueta("horno", "Maqueta: Huayrachina (horno inca)",
-                    "Funde sin carbón: toma lava de un tanque", "tuyo a 8 bloques o menos"),
-                    precio = 4_000_000, descripcion = "Horno que funde con la lava del tanque"),
+                    "Funde sin carbón: toma lava de un tanque o de", "una Fuente del Misti tuya a 8 bloques o menos"),
+                    precio = 4_000_000, descripcion = "Horno que funde con lava"),
+                Oferta("boca", "Boca de horno", mejora("boca", "boca_horno", "Boca de horno",
+                    "La Huayrachina funde uno más a la vez", "Hasta 5 bocas: 6 a la vez"),
+                    precio = 3_000_000, descripcion = "Huayrachina más rápida"),
             ),
         )
 

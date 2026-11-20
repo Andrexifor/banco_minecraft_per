@@ -90,6 +90,14 @@ object Maquinas {
         var faltaAuto: Int = 5,
         var bloque: String = "piedra",
         var facing: String = "south",
+        /** Huayrachina: bocas extra (0 a 5). */
+        var bocas: Int = 0,
+        /** Cantera o fuente unida con un quipu: la clave de su huayrachina o de su tanque. */
+        var enlace: String = "",
+        /** Cantera: qué manda a su huayrachina. */
+        var filtro: String = "cobre,hierro,oro",
+        var progreso: Int = 0,
+        var fundidas: Int = 0,
     ) {
         fun origen() = BlockPos(x, y, z)
         fun nucleo() = BlockPos(x, y + 1, z)
@@ -198,6 +206,7 @@ object Maquinas {
 
     private fun bloqueCantera(b: String): BlockState = when (b) {
         "carbon" -> Blocks.COAL_ORE
+        "oro" -> Blocks.GOLD_ORE
         "hierro" -> Blocks.IRON_ORE
         "cobre" -> Blocks.COPPER_ORE
         "tumbaga" -> Blocks.RAW_GOLD_BLOCK
@@ -209,15 +218,16 @@ object Maquinas {
     private fun sorteo(vetas: Int): String {
         val r = Random.nextDouble()
         return when (vetas) {
-            1 -> if (r < 0.12) "carbon" else "piedra"
-            2 -> when { r < 0.02 -> "tumbaga"; r < 0.10 -> "hierro"; r < 0.18 -> "cobre"; r < 0.28 -> "carbon"; else -> "piedra" }
-            3 -> when { r < 0.06 -> "tumbaga"; r < 0.18 -> "hierro"; r < 0.30 -> "cobre"; else -> "piedra" }
+            1 -> if (r < 0.12) "cobre" else "piedra"
+            2 -> when { r < 0.02 -> "tumbaga"; r < 0.06 -> "oro"; r < 0.14 -> "hierro"; r < 0.24 -> "cobre"; else -> "piedra" }
+            3 -> when { r < 0.06 -> "tumbaga"; r < 0.15 -> "oro"; r < 0.27 -> "hierro"; r < 0.37 -> "cobre"; else -> "piedra" }
             else -> "piedra"
         }
     }
 
     private fun itemDe(b: String, servidor: MinecraftServer): ItemStack = when (b) {
         "carbon" -> ItemStack(Items.COAL)
+        "oro" -> ItemStack(Items.RAW_GOLD)
         "hierro" -> ItemStack(Items.RAW_IRON)
         "cobre" -> ItemStack(Items.RAW_COPPER)
         "tumbaga" -> tumbaga(servidor)
@@ -301,6 +311,8 @@ object Maquinas {
             }
             // tambo: menú de viajes
             if (m.tipo == "tambo") { Tambos.abrir(jugador, m); return@register InteractionResult.SUCCESS }
+            // quipu: une una cantera con su huayrachina, o una fuente con su tanque
+            if (d?.contains("quipu") == true) { usarQuipu(jugador, m, s); return@register InteractionResult.SUCCESS }
             // 3) mejoras
             val mejora = d?.getStringOr("mejora_maquina", "")?.ifBlank { null }
             if (mejora != null) { mejorar(jugador, nivel, m, s, mejora); return@register InteractionResult.SUCCESS }
@@ -354,6 +366,7 @@ object Maquinas {
             tipo = tipo, dim = dim(nivel), x = base.x, y = base.y, z = base.z, dueno = j.uuid.toString(),
             vel = d.getIntOr("vel", 0), vetas = d.getIntOr("vetas", 0), auto = d.getBooleanOr("auto", false),
             corazon = d.getBooleanOr("corazon", false), nivelTanque = d.getIntOr("nivelTanque", 0), lava = d.getIntOr("lava", 0),
+            bocas = d.getIntOr("bocas", 0),
             facing = j.direction.opposite.serializedName,
         )
         val piezas = piezas(m)
@@ -389,6 +402,9 @@ object Maquinas {
         val interno = raiz.getCompoundOrEmpty(MARCA)
         interno.putInt("vel", m.vel); interno.putInt("vetas", m.vetas); interno.putBoolean("auto", m.auto)
         interno.putBoolean("corazon", m.corazon); interno.putInt("nivelTanque", m.nivelTanque); interno.putInt("lava", m.lava)
+        interno.putInt("bocas", m.bocas)
+        // el quipu no viaja con la maqueta: vuelve al inventario
+        if (m.enlace.isNotBlank()) itemMejora(servidor, "quipu")?.let { Inventarios.dar(j, it) }
         raiz.put(MARCA, interno)
         maqueta.set(DataComponents.CUSTOM_DATA, CustomData.of(raiz))
         // la descripción de la maqueta muestra las mejoras que guarda
@@ -406,6 +422,7 @@ object Maquinas {
             mejora == "brazo" && m.tipo == "cantera" && !m.auto -> { m.auto = true; m.faltaAuto = 5; true }
             mejora == "corazon" && m.tipo == "fuente" && !m.corazon -> { m.corazon = true; true }
             mejora == "aro" && m.tipo == "tanque" && m.nivelTanque < CAPACIDADES.size - 1 -> { m.nivelTanque++; pintarTanque(nivel, m); true }
+            mejora == "boca" && m.tipo == "horno" && m.bocas < MAX_BOCAS -> { m.bocas++; true }
             else -> false
         }
         if (!ok) { aviso(j, "Esa mejora no sirve aquí o ya está al máximo.", ChatFormatting.RED); return }
@@ -414,6 +431,7 @@ object Maquinas {
         aviso(j, when (m.tipo) {
             "cantera" -> "Cantera: ${TIEMPOS_CANTERA[m.vel]} s por bloque, vetas ${m.vetas}${if (m.auto) ", automática" else ""}."
             "fuente" -> "Fuente del Misti: un balde cada ${tiempoFuente(m) / 60.0} min."
+            "horno" -> "Huayrachina: funde ${1 + m.bocas} a la vez."
             else -> "Tanque: ahora guarda ${CAPACIDADES[m.nivelTanque]} baldes."
         })
     }
@@ -479,11 +497,12 @@ object Maquinas {
     private fun mejoras(m: Maquina): List<String> = when (m.tipo) {
         "cantera" -> listOf(
             "Velocidad: ${TIEMPOS_CANTERA[m.vel]} s por bloque (cinceles: ${m.vel} de ${TIEMPOS_CANTERA.size - 1})",
-            "Vetas: ${if (m.vetas == 0) "ninguna (solo piedra)" else "nivel ${m.vetas} de 3"}",
+            "Vetas: " + when (m.vetas) { 0 -> "ninguna (solo piedra)"; 1 -> "nivel 1 de 3 (cobre)"; 2 -> "nivel 2 de 3 (cobre, hierro, oro y tumbaga)"; else -> "nivel 3 de 3 (más hierro, oro y tumbaga)" },
             "Brazo de la cantera: ${if (m.auto) "sí (pica sola cada 5 s)" else "no"}",
         )
         "fuente" -> listOf("Corazón del Misti: ${if (m.corazon) "sí (lava cada 2.5 min)" else "no (lava cada 5 min)"}")
         "tanque" -> listOf("Tamaño: ${CAPACIDADES[m.nivelTanque]} baldes (aros: ${m.nivelTanque} de ${CAPACIDADES.size - 1})", "Lava: ${m.lava} baldes")
+        "horno" -> listOf("Bocas extra: ${m.bocas} de $MAX_BOCAS (funde ${1 + m.bocas} a la vez)")
         else -> emptyList()
     }
 
@@ -491,11 +510,17 @@ object Maquinas {
     private fun lineasEstado(nivel: ServerLevel, m: Maquina): List<String> {
         val r = ArrayList(mejoras(m))
         when (m.tipo) {
-            "cantera" -> if (m.auto) {
-                val n = cofres(nivel, m).size
-                r += if (n == 0) "Sin cofre: pon cofres pegados a la cantera (al lado o encima)" else "Cofres conectados: $n (llena uno y pasa al siguiente)"
+            "cantera" -> {
+                if (m.auto) {
+                    val n = cofres(nivel, m).size
+                    r += if (n == 0) "Sin cofre: pon cofres pegados a la cantera (al lado o encima)" else "Cofres conectados: $n (llena uno y pasa al siguiente)"
+                }
+                r += textoEnlace(m)
             }
-            "fuente" -> r += "Próxima lava en ${m.falta} s" + if (tanqueCerca(m) { true } != null) " (va al tanque)" else " (al caldero)"
+            "fuente" -> {
+                r += "Próxima lava en ${m.falta} s" + if (enlazada(m) != null || tanqueCerca(m) { true } != null) " (va al tanque)" else " (al caldero)"
+                r += textoEnlace(m)
+            }
             "horno" -> {
                 val t = tanqueCerca(m) { true }
                 val f = fuenteCerca(m)
@@ -532,7 +557,7 @@ object Maquinas {
                         val sale = sorteo(m.vetas)
                         var resto = itemDe(sale, servidor)
                         var destino: BlockPos? = null
-                        if (sale == "hierro" || sale == "cobre") hornoCerca(nivel, m)?.let { (h, horno) ->
+                        if (sale in m.filtro.split(',')) hornoUnido(nivel, m)?.let { (h, horno) ->
                             val entrada = horno.getItem(0)
                             if (entrada.isEmpty) { horno.setItem(0, resto); resto = ItemStack.EMPTY }
                             else if (ItemStack.isSameItemSameComponents(entrada, resto) && entrada.count < 64) { entrada.grow(1); resto = ItemStack.EMPTY }
@@ -551,9 +576,14 @@ object Maquinas {
                 "fuente" -> {
                     if (--m.falta > 0) continue
                     val caldero = m.nucleo()
-                    val tanque = tanqueCerca(m) { it.lava < CAPACIDADES[it.nivelTanque] }
+                    val tanque = enlazada(m)?.takeIf { it.tipo == "tanque" && it.lava < CAPACIDADES[it.nivelTanque] }
+                        ?: tanqueCerca(m) { it.lava < CAPACIDADES[it.nivelTanque] }
                     when {
-                        tanque != null -> { tanque.lava++; pintarTanque(nivel, tanque); m.falta = tiempoFuente(m) }
+                        tanque != null -> {
+                            tanque.lava++
+                            if (nivel.isLoaded(tanque.origen())) pintarTanque(nivel, tanque)
+                            m.falta = tiempoFuente(m)
+                        }
                         nivel.getBlockState(caldero).`is`(Blocks.CAULDRON) -> {
                             nivel.setBlock(caldero, Blocks.LAVA_CAULDRON.defaultBlockState(), 3); m.falta = tiempoFuente(m)
                         }
@@ -561,12 +591,32 @@ object Maquinas {
                     }
                     cambios = true
                 }
+                "tanque" -> if (segundos % 5 == 0) pintarTanque(nivel, m)
                 "horno" -> {
                     val horno = nivel.getBlockEntity(m.nucleo()) as? AbstractFurnaceBlockEntity ?: continue
                     val combustible = horno.getItem(1)
                     if (combustible.`is`(Items.BUCKET)) horno.setItem(1, ItemStack.EMPTY)
                     if (!horno.getItem(0).isEmpty && horno.getItem(1).isEmpty && tomarLava(nivel, m)) {
                         horno.setItem(1, ItemStack(Items.LAVA_BUCKET))
+                        cambios = true
+                    }
+                    // las bocas extra funden más a la vez (mientras el horno esté encendido)
+                    val prendido = nivel.getBlockState(m.nucleo()).let { it.hasProperty(AbstractFurnaceBlock.LIT) && it.getValue(AbstractFurnaceBlock.LIT) }
+                    if (m.bocas > 0 && prendido) {
+                        m.progreso += m.bocas
+                        while (m.progreso >= SEGUNDOS_POR_FUNDIDO) {
+                            m.progreso -= SEGUNDOS_POR_FUNDIDO
+                            val entrada = horno.getItem(0)
+                            val hecho = fundido(entrada) ?: break
+                            val salida = horno.getItem(2)
+                            if (salida.isEmpty) horno.setItem(2, hecho)
+                            else if (ItemStack.isSameItemSameComponents(salida, hecho) && salida.count < 64) salida.grow(1)
+                            else break
+                            entrada.shrink(1)
+                            horno.setChanged()
+                            // un balde de lava alcanza para 100: las bocas también gastan
+                            if (++m.fundidas >= 100) { m.fundidas = 0; tomarLava(nivel, m) }
+                        }
                         cambios = true
                     }
                     // lo fundido pasa a los cofres pegados al horno
@@ -593,6 +643,7 @@ object Maquinas {
         "cantera" -> listOf(Ranura("cincel", m.vel, TIEMPOS_CANTERA.size - 1), Ranura("veta", m.vetas, 3), Ranura("brazo", if (m.auto) 1 else 0, 1))
         "fuente" -> listOf(Ranura("corazon", if (m.corazon) 1 else 0, 1))
         "tanque" -> listOf(Ranura("aro", m.nivelTanque, CAPACIDADES.size - 1))
+        "horno" -> listOf(Ranura("boca", m.bocas, MAX_BOCAS))
         else -> emptyList()
     }
 
@@ -605,17 +656,18 @@ object Maquinas {
 
     private fun menu(j: ServerPlayer, nivel: ServerLevel, m: Maquina) {
         if (m !in lista) return
-        val gui = SimpleGui(MenuType.GENERIC_9x3, j, false)
+        val grande = m.tipo == "cantera"
+        val gui = SimpleGui(if (grande) MenuType.GENERIC_9x4 else MenuType.GENERIC_9x3, j, false)
         gui.setTitle(GuiUtil.texto(nombre(m.tipo), ChatFormatting.DARK_GREEN))
         for (i in 0 until gui.size) gui.setSlot(i, GuiUtil.relleno())
         gui.setSlot(4, GuiElementBuilder(icono(m)).setName(GuiUtil.texto(nombre(m.tipo), ChatFormatting.GOLD))
             .setLore(lineasEstado(nivel, m).map { GuiUtil.texto(it, ChatFormatting.GRAY) }))
-        val lugares = intArrayOf(11, 13, 15)
+        val lugares = when (m.tipo) { "cantera" -> intArrayOf(10, 12, 14); "fuente" -> intArrayOf(11); else -> intArrayOf(13) }
         ranuras(m).forEachIndexed { i, r ->
             val base = itemMejora(nivel.server, r.id) ?: ItemStack(Items.PAPER)
             base.count = r.puestas.coerceIn(1, 64)
             val nombreMejora = BancoMinecraftPer.pirqa.buscar(r.id)?.nombre ?: r.id
-            val lore = ArrayList<net.minecraft.network.chat.Component>()
+            val lore = ArrayList<Component>()
             lore += GuiUtil.texto("Puestas: ${r.puestas} de ${r.maximo}", if (r.puestas > 0) ChatFormatting.AQUA else ChatFormatting.GRAY)
             if (r.puestas > 0) lore += GuiUtil.texto("Clic: sacar una (vuelve a tu inventario)", ChatFormatting.YELLOW)
             else lore += GuiUtil.texto("Para ponerla: clic derecho a la máquina con la mejora", ChatFormatting.DARK_GRAY)
@@ -623,8 +675,10 @@ object Maquinas {
             if (r.puestas > 0) b.setCallback(Runnable { quitar(j, nivel, m, r.id); menu(j, nivel, m) })
             gui.setSlot(lugares[i], b)
         }
+        if (m.tipo == "cantera" || m.tipo == "fuente") gui.setSlot(if (grande) 16 else 15, botonQuipu(j, nivel, m))
+        if (grande) ponerFiltro(j, nivel, m, gui)
         val guarda = if (m.tipo == "tanque") "sus mejoras y su lava" else "sus mejoras"
-        gui.setSlot(22, GuiUtil.boton(ItemStack(Items.BARRIER), "Desarmar", listOf("Vuelve a ser maqueta", "La maqueta guarda $guarda"), ChatFormatting.RED) {
+        gui.setSlot(if (grande) 31 else 22, GuiUtil.boton(ItemStack(Items.BARRIER), "Desarmar", listOf("Vuelve a ser maqueta", "La maqueta guarda $guarda"), ChatFormatting.RED) {
             GuiUtil.confirmar(j, "¿Desarmar?", icono(m), listOf(nombre(m.tipo), "La maqueta guarda $guarda"),
                 alConfirmar = { j.closeContainer(); if (m in lista) desarmar(j, nivel, m) },
                 alCancelar = { menu(j, nivel, m) })
@@ -640,6 +694,7 @@ object Maquinas {
             "veta" -> if (m.vetas > 0) { m.vetas--; true } else false
             "brazo" -> if (m.auto) { m.auto = false; true } else false
             "corazon" -> if (m.corazon) { m.corazon = false; true } else false
+            "boca" -> if (m.bocas > 0) { m.bocas--; true } else false
             "aro" -> when {
                 m.nivelTanque == 0 -> false
                 m.lava > CAPACIDADES[m.nivelTanque - 1] -> {
@@ -683,6 +738,8 @@ object Maquinas {
     // ---------- adornos: las mejoras se ven ----------
 
     private const val ADORNO = "maq_adorno"
+    /** Cambia cuando cambia el aspecto de los adornos: los viejos se reemplazan solos. */
+    private const val ADORNO_VERSION = "maq_adorno_v2"
     private var segundos = 0
     private val revisadas = HashSet<String>()
 
@@ -709,7 +766,7 @@ object Maquinas {
                     r += Adorno(modelo("cincel_apu"), cx + dx, y + 4.45, cz + dz, yaw, 0.9f)
                 }
                 // vetas: trozos de mineral en las aberturas del primer piso
-                val vetas = listOf(Triple(0, -1, "coal_ore"), Triple(1, 0, "iron_ore"), Triple(-1, 0, "copper_ore"), Triple(0, 1, "raw_gold_block"))
+                val vetas = listOf(Triple(0, -1, "copper_ore"), Triple(1, 0, "iron_ore"), Triple(-1, 0, "gold_ore"), Triple(0, 1, "raw_gold_block"))
                 val cuantas = when (m.vetas) { 1 -> 1; 2 -> 3; 3 -> 4; else -> 0 }
                 for (i in 0 until cuantas) {
                     val (dx, dz, b) = vetas[i]
@@ -718,6 +775,19 @@ object Maquinas {
                 if (m.auto) {
                     val yaw = runCatching { Direction.valueOf(m.facing.uppercase()).toYRot() }.getOrDefault(0f)
                     r += Adorno(modelo("brazo_cantera"), cx, y + BRAZO_ARRIBA, cz, yaw, 1.1f, brazo = true)
+                }
+            }
+            "horno" -> {
+                // bocas extra: hornitos en las aberturas (no delante del horno) y sobre dos esquinas del techo
+                val frente = runCatching { Direction.valueOf(m.facing.uppercase()) }.getOrDefault(Direction.SOUTH)
+                val lugares = ArrayList<Vec3>()
+                for (dir in listOf(Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST)) {
+                    if (dir != frente) lugares += Vec3(cx + dir.stepX * 1.15, y + 1.25, cz + dir.stepZ * 1.15)
+                }
+                lugares += Vec3(cx - 1, y + 3.75, cz - 1); lugares += Vec3(cx + 1, y + 3.75, cz + 1)
+                for (i in 0 until m.bocas.coerceAtMost(lugares.size)) {
+                    val p = lugares[i]
+                    r += Adorno("{id:\"minecraft:blast_furnace\",count:1}", p.x, p.y, p.z, frente.toYRot(), 0.5f, "none", "[0f,0f,0f,1f]")
                 }
             }
             "fuente" -> if (m.corazon) r += Adorno(modelo("corazon_misti"), cx, y + 4.7, cz, 0f, 0.8f, extra = "billboard:\"vertical\",")
@@ -745,7 +815,7 @@ object Maquinas {
         quitarAdornos(nivel, m)
         val c = clave(m)
         for (a in adornos(m)) {
-            val tags = "\"$ADORNO\",\"$c\"" + if (a.brazo) ",\"${c}_brazo\"" else ""
+            val tags = "\"$ADORNO\",\"$ADORNO_VERSION\",\"$c\"" + if (a.brazo) ",\"${c}_brazo\"" else ""
             val nbt = "{Tags:[$tags],Rotation:[${a.yaw}f,0f],teleport_duration:3,view_range:1.5f,item_display:\"${a.modo}\",${a.extra}" +
                 "item:${a.item},transformation:{left_rotation:${a.giro},right_rotation:[0f,0f,0f,1f],translation:[0f,0f,0f]," +
                 "scale:[${a.escala}f,${a.escala}f,${a.escala}f]}}"
@@ -758,7 +828,8 @@ object Maquinas {
     private fun revisarAdornos(nivel: ServerLevel, m: Maquina) {
         if (!nivel.areEntitiesLoaded(ChunkPos.pack(m.x shr 4, m.z shr 4))) return
         val c = clave(m)
-        val hay = nivel.getEntitiesOfClass(Display::class.java, caja(m)) { c in it.entityTags() }.size
+        val todos = nivel.getEntitiesOfClass(Display::class.java, caja(m)) { c in it.entityTags() }
+        val hay = if (todos.any { ADORNO_VERSION !in it.entityTags() }) -1 else todos.size
         if (hay != adornos(m).size) decorar(nivel, m) else revisadas += c
     }
 
@@ -769,7 +840,7 @@ object Maquinas {
     private val vuelos = ArrayList<Animacion>()
 
     private fun idItem(b: String) = when (b) {
-        "carbon" -> "coal"; "hierro" -> "raw_iron"; "cobre" -> "raw_copper"; "tumbaga" -> "raw_gold"; else -> "cobblestone"
+        "carbon" -> "coal"; "hierro" -> "raw_iron"; "cobre" -> "raw_copper"; "oro" -> "raw_gold"; "tumbaga" -> "raw_gold"; else -> "cobblestone"
     }
 
     private fun picar(nivel: ServerLevel, m: Maquina, sale: String, destino: BlockPos?) {
@@ -845,9 +916,113 @@ object Maquinas {
         return true
     }
 
-    private fun hornoCerca(nivel: ServerLevel, m: Maquina): Pair<Maquina, AbstractFurnaceBlockEntity>? {
-        val h = lista.firstOrNull { it.tipo == "horno" && cerca(it, m) } ?: return null
+    private fun hornoUnido(nivel: ServerLevel, m: Maquina): Pair<Maquina, AbstractFurnaceBlockEntity>? {
+        val h = enlazada(m)?.takeIf { it.tipo == "horno" } ?: return null
+        if (!nivel.isLoaded(h.nucleo())) return null
         val be = nivel.getBlockEntity(h.nucleo()) as? AbstractFurnaceBlockEntity ?: return null
         return h to be
+    }
+
+    // ---------- quipu y filtro ----------
+
+    private const val MAX_BOCAS = 5
+    private const val SEGUNDOS_POR_FUNDIDO = 10
+    private const val ALCANCE_QUIPU = 64
+
+    /** Lo que funden las bocas extra (el horno de verdad funde cualquier cosa). */
+    private fun fundido(s: ItemStack): ItemStack? = when {
+        s.isEmpty -> null
+        s.`is`(Items.COBBLESTONE) -> ItemStack(Items.STONE)
+        s.`is`(Items.RAW_IRON) -> ItemStack(Items.IRON_INGOT)
+        s.`is`(Items.RAW_COPPER) -> ItemStack(Items.COPPER_INGOT)
+        s.`is`(Items.RAW_GOLD) -> ItemStack(Items.GOLD_INGOT)
+        s.`is`(Items.SAND) -> ItemStack(Items.GLASS)
+        s.`is`(Items.COBBLED_DEEPSLATE) -> ItemStack(Items.DEEPSLATE)
+        else -> null
+    }
+
+    private fun enlazada(m: Maquina): Maquina? = if (m.enlace.isBlank()) null else lista.firstOrNull { clave(it) == m.enlace }
+
+    private fun textoEnlace(m: Maquina): String {
+        if (m.enlace.isBlank()) return "Quipu: sin unir"
+        val d = enlazada(m) ?: return "Quipu: lo que unía ya no existe"
+        return "Quipu: unida a ${nombre(d.tipo)} en (${d.x}, ${d.y}, ${d.z})"
+    }
+
+    /** Quién está uniendo con un quipu, y desde qué máquina. */
+    private val quipuDesde = HashMap<UUID, Maquina>()
+
+    private fun usarQuipu(j: ServerPlayer, m: Maquina, s: ItemStack) {
+        when (m.tipo) {
+            "cantera", "fuente" -> {
+                quipuDesde[j.uuid] = m
+                aviso(j, "Quipu: ahora haz clic derecho a " + (if (m.tipo == "cantera") "la Huayrachina" else "el Tanque") + " que quieres unir.", ChatFormatting.AQUA)
+            }
+            "horno", "tanque" -> {
+                val esperado = if (m.tipo == "horno") "cantera" else "fuente"
+                val o = quipuDesde[j.uuid]
+                if (o == null || o !in lista || o.tipo != esperado) {
+                    aviso(j, "Primero haz clic con el quipu a " + (if (esperado == "cantera") "una Cantera inca." else "una Fuente del Misti."), ChatFormatting.RED); return
+                }
+                if (o.dim != m.dim || kotlin.math.abs(o.x - m.x) > ALCANCE_QUIPU || kotlin.math.abs(o.y - m.y) > ALCANCE_QUIPU || kotlin.math.abs(o.z - m.z) > ALCANCE_QUIPU) {
+                    aviso(j, "Están muy lejos: el quipu llega hasta $ALCANCE_QUIPU bloques.", ChatFormatting.RED); return
+                }
+                val nuevo = o.enlace.isBlank()
+                o.enlace = clave(m)
+                quipuDesde.remove(j.uuid)
+                if (nuevo) s.shrink(1)
+                guardar()
+                aviso(j, "¡Unidas! ${nombre(o.tipo)} → ${nombre(m.tipo)}." + if (o.tipo == "cantera") " En su menú eliges qué materiales manda." else "", ChatFormatting.GREEN)
+            }
+            else -> aviso(j, "El quipu une una cantera con una Huayrachina, o una Fuente del Misti con un Tanque.", ChatFormatting.RED)
+        }
+    }
+
+    private val FILTRO = listOf(
+        Triple("piedra", Items.COBBLESTONE, "Piedra"), Triple("cobre", Items.RAW_COPPER, "Cobre"),
+        Triple("hierro", Items.RAW_IRON, "Hierro"), Triple("oro", Items.RAW_GOLD, "Oro"),
+    )
+
+    private fun botonQuipu(j: ServerPlayer, nivel: ServerLevel, m: Maquina): GuiElementBuilder {
+        val icono = itemMejora(nivel.server, "quipu") ?: ItemStack(Items.STRING)
+        val destino = if (m.tipo == "cantera") "una Huayrachina" else "un Tanque"
+        val b = GuiElementBuilder(icono).setName(GuiUtil.texto(textoEnlace(m), ChatFormatting.GOLD))
+        if (m.enlace.isBlank()) {
+            b.setLore(listOf(
+                GuiUtil.texto("Para unirla: clic derecho a esta máquina con un quipu", ChatFormatting.GRAY),
+                GuiUtil.texto("y luego a $destino (hasta $ALCANCE_QUIPU bloques)", ChatFormatting.GRAY),
+            ))
+        } else {
+            b.setLore(listOf(GuiUtil.texto("Clic: soltar el quipu (vuelve a tu inventario)", ChatFormatting.YELLOW)))
+            b.setCallback(Runnable {
+                if (m in lista && m.enlace.isNotBlank()) {
+                    m.enlace = ""
+                    itemMejora(nivel.server, "quipu")?.let { Inventarios.dar(j, it) }
+                    guardar()
+                }
+                menu(j, nivel, m)
+            })
+        }
+        return b
+    }
+
+    private fun ponerFiltro(j: ServerPlayer, nivel: ServerLevel, m: Maquina, gui: SimpleGui) {
+        gui.setSlot(19, GuiElementBuilder(Items.HOPPER).setName(GuiUtil.texto("Filtro del quipu", ChatFormatting.GOLD)).setLore(listOf(
+            GuiUtil.texto("Lo marcado va a la Huayrachina", ChatFormatting.GRAY),
+            GuiUtil.texto("lo demás, a los cofres de la cantera", ChatFormatting.GRAY),
+        )))
+        val activos = m.filtro.split(',').filter { it.isNotBlank() }.toMutableSet()
+        FILTRO.forEachIndexed { i, (id, item, nombreMat) ->
+            val si = id in activos
+            val b = GuiElementBuilder(item).setName(GuiUtil.texto("$nombreMat: " + if (si) "a la Huayrachina" else "al cofre", if (si) ChatFormatting.GREEN else ChatFormatting.GRAY))
+                .setLore(listOf(GuiUtil.texto("Clic: cambiar", ChatFormatting.YELLOW)))
+            b.setCallback(Runnable {
+                if (si) activos -= id else activos += id
+                m.filtro = FILTRO.map { it.first }.filter { it in activos }.joinToString(",")
+                guardar()
+                menu(j, nivel, m)
+            })
+            gui.setSlot(21 + i, b)
+        }
     }
 }

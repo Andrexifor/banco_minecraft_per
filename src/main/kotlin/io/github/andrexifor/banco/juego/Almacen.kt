@@ -109,7 +109,7 @@ class Almacen(private val dirConfig: Path, private val dirDatos: Path) {
 
     fun cargarAnimales(): CatalogoOfertas = cargarOfertas("animales.json", CatalogoOfertas::animalesPorDefecto)
 
-    fun cargarPirqa(): CatalogoOfertas = cargarOfertas("pirqa.json", CatalogoOfertas::pirqaPorDefecto)
+    fun cargarPirqa(): CatalogoOfertas = cargarOfertas("pirqa.json", CatalogoOfertas::pirqaPorDefecto, setOf("veta", "horno"), true)
 
     fun cargarPociones(): CatalogoOfertas = cargarOfertas("pociones.json", CatalogoOfertas::pocionesPorDefecto)
 
@@ -117,7 +117,9 @@ class Almacen(private val dirConfig: Path, private val dirDatos: Path) {
 
     fun cargarContrabando(): CatalogoOfertas = cargarOfertas("contrabando.json", CatalogoOfertas::contrabandoPorDefecto)
 
-    private fun cargarOfertas(nombre: String, defecto: () -> CatalogoOfertas): CatalogoOfertas {
+    private fun cargarOfertas(
+        nombre: String, defecto: () -> CatalogoOfertas, renovar: Set<String> = emptySet(), agregarNuevas: Boolean = false,
+    ): CatalogoOfertas {
         Files.createDirectories(dirConfig)
         val archivo = dirConfig.resolve(nombre)
         if (!Files.exists(archivo)) {
@@ -126,7 +128,9 @@ class Almacen(private val dirConfig: Path, private val dirDatos: Path) {
             return d
         }
         val leido = gson.fromJson(Files.readString(archivo, StandardCharsets.UTF_8), CatalogoOfertas::class.java)
-        return (leido ?: defecto()).normalizado(defecto)
+        val n = (leido ?: defecto()).normalizado(defecto, renovar, agregarNuevas)
+        if (agregarNuevas || renovar.isNotEmpty()) escribirAtomico(archivo, gson.toJson(n))
+        return n
     }
 
     fun cargarMercadoNegro(): ConfigMercadoNegro {
